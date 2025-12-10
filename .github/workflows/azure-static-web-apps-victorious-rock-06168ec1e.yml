@@ -46,7 +46,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "public"
-          api_location: "api"
+          api_location: "api/api"
           output_location: ""
           skip_app_build: true
       - name: Deployment Summary
@@ -56,7 +56,7 @@ jobs:
           echo "====================="
           echo "Deployment Status: ${{ job.status }}"
           echo "App Location: public"
-          echo "API Location: api"
+          echo "API Location: api/api"
           echo ""
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ Deployment successful!"
