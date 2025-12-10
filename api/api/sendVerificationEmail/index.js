@@ -105,15 +105,27 @@ module.exports = async function (context, req) {
         const result = await poller.pollUntilDone();
         
         context.log(`✅ Email envoyé à ${email} via Azure Communication Services`);
-        
-        // En production, on ne retourne pas le code
+        context.log('ACS send result:', result);
+
+        // If DEBUG_EMAIL_LOGS is set, include the ACS result (messageId/status) in the response for debugging
+        const debugEnabled = process.env.DEBUG_EMAIL_LOGS === 'true';
+
+        // En production, on ne retourne pas le code. Optionally return ACS result when debugging.
         context.res = {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                success: true,
-                message: 'Code de vérification envoyé par email'
-            })
+            body: JSON.stringify(
+                debugEnabled
+                    ? {
+                          success: true,
+                          message: 'Code de vérification envoyé par email',
+                          acsResult: result
+                      }
+                    : {
+                          success: true,
+                          message: 'Code de vérification envoyé par email'
+                      }
+            )
         };
         
     } catch (error) {
