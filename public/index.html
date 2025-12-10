@@ -3353,7 +3353,7 @@
 
                 showTyping();
 
-                const endpoint = plan === 'PRO' ? '/api/invoke' : '/api/invokeFree';
+                const endpoint = plan === 'PRO' ? AGENT_ENDPOINT_PRO : AGENT_ENDPOINT_FREE;
                 const prompt = `Translate the following text to ${target}. Preserve meaning, tone, and formatting where relevant. Text:\n\n${text}`;
 
                 const res = await fetch(endpoint, {
