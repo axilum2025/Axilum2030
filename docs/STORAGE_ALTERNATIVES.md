@@ -59,19 +59,10 @@ az storage account show-connection-string \
 
 ### 2. Configurer la connection string
 
-**Local** (`api/local.settings.json`) :
-```json
-{
-  "IsEncrypted": false,
-  "Values": {
-    "FUNCTIONS_WORKER_RUNTIME": "node",
-    "AZURE_AI_API_KEY": "[REDACTED_AZURE_AI_API_KEY]",
-    "AZURE_STORAGE_CONNECTION_STRING": "DefaultEndpointsProtocol=https;AccountName=axilumaistorage;AccountKey=[REDACTED];EndpointSuffix=core.windows.net"
-  }
-}
-```
+⚠️ **Pour Azure Static Web Apps** : Ne créez **PAS** de fichier `local.settings.json`.
+Les paramètres `FUNCTIONS_WORKER_RUNTIME` et similaires sont **interdits** car gérés automatiquement.
 
-**Azure Portal** :
+**Configuration dans Azure Portal** :
 1. Allez sur votre Static Web App
 2. Configuration → Application settings
 3. Ajoutez : `AZURE_STORAGE_CONNECTION_STRING` = `<votre-connection-string>`

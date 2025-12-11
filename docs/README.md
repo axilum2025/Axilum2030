@@ -36,17 +36,9 @@ npm install
 ```
 
 2. **Configurer la clé API** :
-Créez `api/local.settings.json` :
-```json
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "",
-    "FUNCTIONS_WORKER_RUNTIME": "node",
-    "AZURE_AI_API_KEY": "[REDACTED_AZURE_AI_API_KEY]"
-  }
-}
-```
+
+   ⚠️ **Note** : Pour Azure Static Web Apps, les paramètres se configurent dans Azure Portal.
+   Les fichiers `local.settings.json` ne sont **PAS nécessaires** et ne doivent **PAS être utilisés**.
 
 3. **Démarrer l'API** :
 ```bash

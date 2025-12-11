@@ -83,19 +83,11 @@ Cliquez sur **"+ Ajouter"** pour chaque variable :
 
 Ajoutez la connection string locale :
 
-```json
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "",
-    "FUNCTIONS_WORKER_RUNTIME": "node",
-    "AZURE_AI_API_KEY": "[REDACTED_AZURE_AI_API_KEY]",
-    "AZURE_STORAGE_CONNECTION_STRING": "DefaultEndpointsProtocol=https;AccountName=axilumaistorage;AccountKey=[REDACTED];EndpointSuffix=core.windows.net"
-  }
-}
-```
+⚠️ **Important pour Azure Static Web Apps** :
 
-⚠️ **Important** : Ce fichier est dans `.gitignore`, ne le commitez jamais !
+Les paramètres comme `AzureWebJobsStorage` et `FUNCTIONS_WORKER_RUNTIME` sont **INTERDITS** dans Static Web Apps car ils sont gérés automatiquement. Ne créez **PAS** de fichier `local.settings.json` pour ce projet.
+
+Les variables d'environnement se configurent **uniquement dans Azure Portal** → Static Web App → Configuration.
 
 ### 3.2 Alternative : Utiliser Azurite (Émulateur local)
 
