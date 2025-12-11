@@ -39,17 +39,21 @@ module.exports = async function (context, req) {
         const deployment = 'gpt-5-mini';
         const apiVersion = '2024-12-01-preview';
         
+        context.log('🔍 Checking API Key...', apiKey ? 'API Key found' : 'API Key MISSING');
+        
         if (!apiKey) {
             context.log.error('⚠️ AZURE_AI_API_KEY not configured');
             context.res = {
-                status: 500,
+                status: 200, // Changé en 200 pour éviter les problèmes CORS
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type'
                 },
                 body: {
                     error: "Azure OpenAI API Key not configured",
-                    hint: "Please configure AZURE_AI_API_KEY in Azure Static Web App settings",
+                    hint: "Allez dans Azure Portal → Static Web App → Configuration → Ajoutez AZURE_AI_API_KEY",
                     responseTime: `${Date.now() - startTime}ms`
                 }
             };
@@ -120,16 +124,22 @@ Réponds de manière claire, précise et professionnelle en français.
             context.log.error('❌ Azure OpenAI Error:', response.status, errorText);
             
             context.res = {
-                status: response.status,
+                status: 200, // Changé en 200 pour éviter les problèmes CORS
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type'
                 },
                 body: {
                     error: `Azure OpenAI Error: ${response.status}`,
                     details: errorText,
                     endpoint: endpoint,
                     deployment: deployment,
+                    apiVersion: apiVersion,
+                    hint: response.status === 401 ? "Vérifiez que AZURE_AI_API_KEY est correcte" : 
+                          response.status === 404 ? "Le deployment 'gpt-5-mini' n'existe pas dans Azure OpenAI" :
+                          "Erreur lors de l'appel à Azure OpenAI",
                     responseTime: `${Date.now() - startTime}ms`
                 }
             };
@@ -159,16 +169,25 @@ Réponds de manière claire, précise et professionnelle en français.
 
     } catch (error) {
         context.log.error('❌ Error in invoke function:', error);
+        context.log.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        
         context.res = {
-            status: 500,
+            status: 200, // Changé en 200 pour éviter les problèmes CORS
             headers: { 
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
             },
             body: {
                 error: "Internal server error",
                 message: error.message,
-                stack: error.stack
+                details: error.stack,
+                hint: "Vérifiez que AZURE_AI_API_KEY est configurée dans Azure Static Web App"
             }
         };
     }
