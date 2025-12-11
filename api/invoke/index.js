@@ -155,11 +155,11 @@ Réponds de manière claire, précise et professionnelle en français.
                 response: aiResponse,
                 responseTime: `${responseTime}ms`,
                 proPlan: true,
-                model: 'gpt-5-mini',
+                model: 'gpt-4o-mini',
+                provider: 'OpenRouter',
                 tokensUsed: data.usage?.total_tokens || 0
             }
-        };4o-mini',
-                provider: 'OpenRouter
+        };
 
     } catch (error) {
         context.log.error('❌ Error in invoke function:', error);
@@ -181,7 +181,7 @@ Réponds de manière claire, précise et professionnelle en français.
                 error: "Internal server error",
                 message: error.message,
                 details: error.stack,
-                hint: "Vérifiez que AZURE_AI_API_KEY est configurée dans Azure Static Web App"
+                hint: "Vérifiez que OPENROUTER_API_KEY est configurée dans Azure Static Web App"
             }
         };
     }
