@@ -175,16 +175,15 @@ module.exports = async function (context, req) {
             },
             body: {
                 response: finalResponse,
-                hallucinationIndex: 0,
-                contextHistoryRatio: 0,
                 responseTime: `${processingTime}ms`,
                 freePlan: true,
-                model: 'llama-3.2-90b',
-                usage: data.usage || {
-                    prompt_tokens: messages.length * 50,
-                    completion_tokens: aiResponse.length / 4,
-                    total_tokens: (messages.length * 50) + (aiResponse.length / 4)
-                }
+                model: 'llama-3.3-70b',
+                provider: 'Groq',
+                tokensUsed: data.usage?.total_tokens || 0,
+                promptTokens: data.usage?.prompt_tokens || 0,
+                completionTokens: data.usage?.completion_tokens || 0,
+                qualityScore: 85,
+                advancedFeatures: false
             }
         };
         
