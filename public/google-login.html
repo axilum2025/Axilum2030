@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Connexion Google - Axilum</title>
+</head>
+<body>
+  <h1>Se connecter avec Google</h1>
+  <p>
+    <a id="loginBtn" href="/.auth/login/google?post_login_redirect_uri=/google-login.html">Se connecter avec Google</a>
+  </p>
+
+  <div id="me" style="margin-top:20px;"></div>
+  <button id="mapBtn" style="display:none">Map user on backend</button>
+
+  <script>
+    async function loadPrincipal() {
+      try {
+        const r = await fetch('/.auth/me');
+        if (!r.ok) return;
+        const data = await r.json();
+        document.getElementById('me').textContent = JSON.stringify(data, null, 2);
+        document.getElementById('mapBtn').style.display = 'inline-block';
+      } catch (e) {
+        document.getElementById('me').textContent = 'Not logged in.';
+      }
+    }
+
+    document.getElementById('mapBtn').addEventListener('click', async () => {
+      const res = await fetch('/api/map-google-user', { method: 'POST' });
+      const txt = await res.text();
+      alert('Backend response: ' + txt);
+    });
+
+    loadPrincipal();
+  </script>
+</body>
+</html>
