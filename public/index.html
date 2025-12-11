@@ -2652,16 +2652,70 @@
                     });
                 }
                 
-                if (data.usage && data.usage.total_tokens) {
+                if (data.tokensUsed || (data.usage && data.usage.total_tokens)) {
+                    const tokens = data.tokensUsed || data.usage.total_tokens;
                     metrics.performance.push({
                         icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>', 
                         label: 'Tokens', 
-                        value: data.usage.total_tokens, 
+                        value: tokens, 
+                        color: '#8B5CF6'
+                    });
+                }
+                
+                // Tokens détaillés
+                if (data.promptTokens && data.completionTokens) {
+                    metrics.performance.push({
+                        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>', 
+                        label: 'Prompt', 
+                        value: data.promptTokens, 
+                        color: '#3B82F6'
+                    });
+                    metrics.performance.push({
+                        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>', 
+                        label: 'Réponse', 
+                        value: data.completionTokens, 
+                        color: '#10B981'
+                    });
+                }
+                
+                // Provider et Model
+                if (data.provider) {
+                    metrics.performance.push({
+                        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>', 
+                        label: 'Provider', 
+                        value: data.provider, 
+                        color: '#F59E0B'
+                    });
+                }
+                
+                if (data.model) {
+                    metrics.performance.push({
+                        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m5.196-13.196l-4.242 4.242m-5.908 5.908l-4.242 4.242m18.384-.001l-4.242-4.242m-5.908-5.908l-4.242-4.242"/></svg>', 
+                        label: 'Modèle', 
+                        value: data.model, 
                         color: '#8B5CF6'
                     });
                 }
                 
                 // Métriques de qualité
+                if (data.qualityScore) {
+                    metrics.quality.push({
+                        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>', 
+                        label: 'Qualité', 
+                        value: `${data.qualityScore}%`, 
+                        color: '#10B981'
+                    });
+                }
+                
+                if (data.advancedFeatures !== undefined) {
+                    metrics.quality.push({
+                        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 
+                        label: 'Fonctions', 
+                        value: data.advancedFeatures ? 'Avancées' : 'Standard', 
+                        color: data.advancedFeatures ? '#8B5CF6' : '#6B7280'
+                    });
+                }
+                
                 if (data.response && data.response.includes('HI:')) {
                     const hiMatch = data.response.match(/HI: ([0-9.]+)%/);
                     const chrMatch = data.response.match(/CHR: ([0-9.]+)%/);
