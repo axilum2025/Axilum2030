@@ -1638,6 +1638,14 @@
                     <span class="menu-item-text">Analyse Vision</span>
                     <span class="badge neutral" style="margin-left:auto;">PRO</span>
                 </button>
+                <!-- Office Pro (Microsoft 365) -->
+                <button class="menu-item" onclick="openOfficePro()" style="padding-left:30px;" title="Office Pro - Calendrier, Tâches, Planning (PRO)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    <span class="menu-item-text">📊 Office Pro</span>
+                    <span class="badge neutral" style="margin-left:auto;">PRO</span>
+                </button>
             </div>
             
             <!-- Section Outils (dépliable) -->
@@ -3436,6 +3444,78 @@
                 console.error('Translation error', e);
                 showToast(`Erreur traduction: ${e.message || 'inconnue'}`, 'error');
             }
+        }
+
+        // 📊 Office Pro - Utilisation ultra-simple via chat
+        function openOfficePro() {
+            const content = `
+                <div style="padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; margin-bottom: 20px;">
+                        <h3 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 32px;">📊</span>
+                            <span>Office Pro</span>
+                        </h3>
+                        <p style="margin: 0; opacity: 0.9;">Gérez votre calendrier, tâches et planning directement en parlant !</p>
+                    </div>
+
+                    <div style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                        <h4 style="margin: 0 0 10px 0; color: var(--text-primary);">✨ Utilisation ultra-simple</h4>
+                        <p style="margin: 0; color: var(--text-secondary); line-height: 1.6;">
+                            Parlez naturellement dans le chat ! Pas besoin de configuration complexe.
+                        </p>
+                    </div>
+
+                    <div style="display: grid; gap: 12px;">
+                        <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; border-left: 3px solid #3B82F6;">
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">📅 Calendrier</div>
+                            <div style="color: var(--text-secondary); font-size: 13px; font-style: italic;">
+                                "Montre mon calendrier de la semaine"<br>
+                                "Crée une réunion demain à 14h"<br>
+                                "Suis-je libre vendredi matin ?"
+                            </div>
+                        </div>
+
+                        <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; border-left: 3px solid #10B981;">
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">✅ Tâches</div>
+                            <div style="color: var(--text-secondary); font-size: 13px; font-style: italic;">
+                                "Ajoute 'Appeler le client' à mes tâches"<br>
+                                "Montre mes tâches du jour"<br>
+                                "Marque la tâche X comme terminée"
+                            </div>
+                        </div>
+
+                        <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; border-left: 3px solid #F59E0B;">
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">📋 Planning</div>
+                            <div style="color: var(--text-secondary); font-size: 13px; font-style: italic;">
+                                "Planifie ma semaine de travail"<br>
+                                "Quels sont mes rendez-vous aujourd'hui ?"<br>
+                                "Propose des créneaux pour une réunion"
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <span style="font-size: 20px;">💡</span>
+                            <span style="font-weight: 600; color: var(--text-primary);">Comment ça marche ?</span>
+                        </div>
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+                            Fermez cette fenêtre et parlez simplement dans le chat. L'IA détecte automatiquement 
+                            vos demandes de calendrier, tâches ou planning et vous aide instantanément !
+                        </p>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 20px;">
+                        <button class="new-chat-btn" onclick="closeGenericModal(); setTimeout(() => document.getElementById('messageInput').focus(), 300);" style="flex: 1;">
+                            ✨ Commencer à parler
+                        </button>
+                        <button class="new-chat-btn" style="background: var(--bg-secondary); color: var(--text-primary);" onclick="closeGenericModal()">
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            `;
+            showGenericModal('Office Pro - Calendrier & Tâches', content);
         }
 
         // Outil TTS (FREE)
