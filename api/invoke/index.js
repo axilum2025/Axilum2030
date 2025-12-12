@@ -33,6 +33,13 @@ module.exports = async function (context, req) {
 
         const startTime = Date.now();
         
+        // 🔍 Google Fact Check en parallèle (ne pas bloquer si ça échoue)
+        let factCheckResults = null;
+        const factCheckPromise = googleFactCheck(userMessage).catch(err => {
+            context.log.warn('⚠️ Fact check failed:', err.message);
+            return null;
+        });
+        
         // OpenRouter API configuration (compatible OpenAI, accès à tous les modèles)
         const apiKey = process.env.APPSETTING_OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
         
@@ -141,6 +148,10 @@ Réponds de manière claire, précise et professionnelle en français.
 
         const data = await response.json();
         const aiResponse = data.choices[0].message.content;
+        
+        // Attendre le fact-check s'il n'est pas terminé
+        factCheckResults = await factCheckPromise;
+        
         const responseTime = Date.now() - startTime;
 
         context.log(`✅ Response generated in ${responseTime}ms`);
@@ -148,8 +159,16 @@ Réponds de manière claire, précise et professionnelle en français.
         // 🔍 Analyse anti-hallucination simple
         const hallucinationAnalysis = analyzeHallucination(aiResponse);
         
-        // 📊 Ajout des métriques dans la réponse
-        const metricsText = `\n\n---\n📊 **Métriques de Fiabilité**\nHI: ${hallucinationAnalysis.hi.toFixed(1)}% | CHR: ${hallucinationAnalysis.chr.toFixed(1)}%\n💡 *Plan Pro - ${data.usage?.total_tokens || 0} tokens utilisés*`;
+        // 📊 Ajout des sources et métriques dans la réponse
+        let sourcesText = '';
+        if (factCheckResults && factCheckResults.length > 0) {
+            sourcesText = '\n\n🔍 **Sources Vérifiées**:\n';
+            factCheckResults.slice(0, 3).forEach((source, i) => {
+                sourcesText += `${i + 1}. ${source.publisher} - ${source.rating}\n`;
+            });
+        }
+        
+        const metricsText = `\n\n---\n📊 **Métriques de Fiabilité**\nHI: ${hallucinationAnalysis.hi.toFixed(1)}% | CHR: ${hallucinationAnalysis.chr.toFixed(1)}%${sourcesText}\n💡 *Plan Pro - ${data.usage?.total_tokens || 0} tokens utilisés*`;
         const finalResponse = aiResponse + metricsText;
 
         context.res = {
@@ -170,7 +189,8 @@ Réponds de manière claire, précise et professionnelle en français.
                 qualityScore: 95,
                 advancedFeatures: true,
                 hallucinationIndex: hallucinationAnalysis.hi,
-                contextHistoryRatio: hallucinationAnalysis.chr
+                contextHistoryRatio: hallucinationAnalysis.chr,
+                factCheckSources: factCheckResults ? factCheckResults.length : 0
             }
         };
 
@@ -190,6 +210,56 @@ Réponds de manière claire, précise et professionnelle en français.
                 'Access-Control-Allow-Methods': 'POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type'
             },
+            body: {
+                error: "Internal server error",
+                message: error.message,
+                details: error.stack,
+                hint: "Vérifiez que OPENROUTER_API_KEY est configurée dans Azure Static Web App"
+            }
+        };
+    }
+};
+
+// 🔍 Google Fact Check Tools API
+async function googleFactCheck(query) {
+    const factCheckApiKey = process.env.APPSETTING_GOOGLE_FACT_CHECK_API_KEY || process.env.GOOGLE_FACT_CHECK_API_KEY;
+    
+    if (!factCheckApiKey) {
+        return null; // Pas de clé = pas de fact-check
+    }
+    
+    try {
+        const url = `https://factchecktools.googleapis.com/v1alpha1/claims:search?key=${factCheckApiKey}&query=${encodeURIComponent(query)}&languageCode=fr`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            return null;
+        }
+        
+        const data = await response.json();
+        
+        if (!data.claims || data.claims.length === 0) {
+            return null;
+        }
+        
+        // Extraire les sources vérifiées
+        const sources = data.claims.slice(0, 5).map(claim => {
+            const review = claim.claimReview?.[0];
+            return {
+                claim: claim.text,
+                publisher: review?.publisher?.name || 'Source inconnue',
+                rating: review?.textualRating || 'Non évalué',
+                url: review?.url || '',
+                date: review?.reviewDate || ''
+            };
+        });
+        
+        return sources;
+    } catch (error) {
+        return null;
+    }
+}
 
 // 🔍 Fonction d'analyse anti-hallucination
 function analyzeHallucination(text) {
