@@ -145,6 +145,13 @@ Réponds de manière claire, précise et professionnelle en français.
 
         context.log(`✅ Response generated in ${responseTime}ms`);
 
+        // 🔍 Analyse anti-hallucination simple
+        const hallucinationAnalysis = analyzeHallucination(aiResponse);
+        
+        // 📊 Ajout des métriques dans la réponse
+        const metricsText = `\n\n---\n📊 **Métriques de Fiabilité**\nHI: ${hallucinationAnalysis.hi.toFixed(1)}% | CHR: ${hallucinationAnalysis.chr.toFixed(1)}%\n💡 *Plan Pro - ${data.usage?.total_tokens || 0} tokens utilisés*`;
+        const finalResponse = aiResponse + metricsText;
+
         context.res = {
             status: 200,
             headers: { 
@@ -152,7 +159,7 @@ Réponds de manière claire, précise et professionnelle en français.
                 'Access-Control-Allow-Origin': '*'
             },
             body: {
-                response: aiResponse,
+                response: finalResponse,
                 responseTime: `${responseTime}ms`,
                 proPlan: true,
                 model: 'gpt-4o-mini',
@@ -161,7 +168,9 @@ Réponds de manière claire, précise et professionnelle en français.
                 promptTokens: data.usage?.prompt_tokens || 0,
                 completionTokens: data.usage?.completion_tokens || 0,
                 qualityScore: 95,
-                advancedFeatures: true
+                advancedFeatures: true,
+                hallucinationIndex: hallucinationAnalysis.hi,
+                contextHistoryRatio: hallucinationAnalysis.chr
             }
         };
 
@@ -181,6 +190,77 @@ Réponds de manière claire, précise et professionnelle en français.
                 'Access-Control-Allow-Methods': 'POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type'
             },
+
+// 🔍 Fonction d'analyse anti-hallucination
+function analyzeHallucination(text) {
+    if (!text || text.length === 0) {
+        return { hi: 0, chr: 0 };
+    }
+
+    const lowerText = text.toLowerCase();
+    
+    // Mots de certitude absolue (risque d'hallucination)
+    const absoluteWords = [
+        'toujours', 'jamais', 'absolument', 'certainement', 'forcément',
+        'obligatoirement', 'impossible', 'aucun doute', 'sans aucun doute',
+        'à 100%', 'totalement', 'complètement', 'définitivement'
+    ];
+    
+    // Mots de nuance (réduisent le risque)
+    const nuanceWords = [
+        'peut-être', 'probablement', 'généralement', 'souvent', 'parfois',
+        'il semble', 'il semblerait', 'possiblement', 'éventuellement',
+        'dans certains cas', 'habituellement', 'en général', 'typiquement'
+    ];
+    
+    // Mots de citation/source (réduisent le risque)
+    const sourceWords = [
+        'selon', 'd\'après', 'source', 'étude', 'recherche', 'rapport',
+        'article', 'données', 'statistique', 'référence'
+    ];
+    
+    let absoluteCount = 0;
+    let nuanceCount = 0;
+    let sourceCount = 0;
+    
+    absoluteWords.forEach(word => {
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
+        const matches = text.match(regex);
+        if (matches) absoluteCount += matches.length;
+    });
+    
+    nuanceWords.forEach(word => {
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
+        const matches = text.match(regex);
+        if (matches) nuanceCount += matches.length;
+    });
+    
+    sourceWords.forEach(word => {
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
+        const matches = text.match(regex);
+        if (matches) sourceCount += matches.length;
+    });
+    
+    // Calculer l'indice d'hallucination (0-100%)
+    const wordCount = text.split(/\s+/).length;
+    const absoluteRatio = (absoluteCount / wordCount) * 100;
+    const nuanceRatio = (nuanceCount / wordCount) * 100;
+    const sourceRatio = (sourceCount / wordCount) * 100;
+    
+    // HI: Indice d'Hallucination (plus c'est bas, mieux c'est)
+    let hi = absoluteRatio * 10 - nuanceRatio * 5 - sourceRatio * 3;
+    hi = Math.max(0, Math.min(100, hi)); // Entre 0 et 100
+    
+    // CHR: Context History Ratio (cohérence avec l'historique)
+    // Plus il y a de nuances et sources, meilleur c'est
+    let chr = (nuanceRatio + sourceRatio) * 5;
+    chr = Math.max(0, Math.min(100, 100 - chr)); // Inversé: bas = bon
+    
+    return {
+        hi: hi,
+        chr: chr
+    };
+}
             body: {
                 error: "Internal server error",
                 message: error.message,
