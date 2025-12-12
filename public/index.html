@@ -4130,6 +4130,12 @@
                 voiceRecognition.lang = 'fr-FR';
 
                 voiceRecognition.onresult = (event) => {
+                    // NE PAS traiter si l'IA est en train de parler
+                    if (voiceState === 'speaking' || voiceSynthesis.speaking) {
+                        console.log('🔇 Reconnaissance vocale ignorée - IA en train de parler');
+                        return;
+                    }
+
                     const transcript = Array.from(event.results)
                         .map(result => result[0].transcript)
                         .join('');
@@ -4153,9 +4159,13 @@
                 };
 
                 voiceRecognition.onend = () => {
-                    if (voiceModeActive && voiceState === 'listening') {
-                        // Redémarrer automatiquement si toujours actif
-                        voiceRecognition.start();
+                    // NE redémarrer que si en mode écoute et pas en train de parler
+                    if (voiceModeActive && voiceState === 'listening' && !voiceSynthesis.speaking) {
+                        try {
+                            voiceRecognition.start();
+                        } catch (e) {
+                            console.log('Cannot restart recognition:', e);
+                        }
                     }
                 };
             }
@@ -4210,12 +4220,20 @@
         function startVoiceListening() {
             if (!voiceRecognition) return;
             
+            // NE PAS démarrer si l'IA est en train de parler
+            if (voiceSynthesis.speaking) {
+                console.log('⏸️ Écoute différée - IA en train de parler');
+                setTimeout(() => startVoiceListening(), 1000);
+                return;
+            }
+            
             voiceState = 'listening';
             updateVoiceOrbState('listening');
             updateVoiceStatus('Je vous écoute...');
             
             try {
                 voiceRecognition.start();
+                console.log('🎤 Écoute vocale démarrée');
             } catch (e) {
                 console.error('Error starting recognition:', e);
             }
@@ -4265,6 +4283,9 @@
 
         // Lire le texte à voix haute
         function speakText(text) {
+            // ARRÊTER COMPLÈTEMENT la reconnaissance vocale pendant que l'IA parle
+            stopVoiceListening();
+
             // Nettoyer le texte
             let cleanText = text.replace(/```[\s\S]*?```/g, '');
             cleanText = cleanText.replace(/`[^`]+`/g, '');
@@ -4288,22 +4309,27 @@
             updateVoiceStatus('Je vous réponds...');
 
             currentUtterance.onend = () => {
+                console.log('✅ Fin de la synthèse vocale');
                 if (voiceModeActive) {
-                    // Reprendre l'écoute
+                    // Reprendre l'écoute après un délai
                     setTimeout(() => {
+                        console.log('🎤 Redémarrage de l\'écoute');
                         startVoiceListening();
-                    }, 500);
+                    }, 800); // Délai augmenté pour éviter de capter la fin du son
                 }
             };
 
             currentUtterance.onerror = (event) => {
                 console.error('Speech synthesis error:', event);
                 if (voiceModeActive) {
-                    startVoiceListening();
+                    setTimeout(() => {
+                        startVoiceListening();
+                    }, 500);
                 }
             };
 
             voiceSynthesis.speak(currentUtterance);
+            console.log('🔊 Début de la synthèse vocale');
         }
 
         // Mettre à jour l'état visuel de la boule
