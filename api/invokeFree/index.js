@@ -239,7 +239,8 @@ module.exports = async function (context, req) {
         };
     }
 };
-Google Fact Check Tools API
+
+// 🔍 Google Fact Check Tools API
 async function googleFactCheck(query) {
     const factCheckApiKey = process.env.APPSETTING_GOOGLE_FACT_CHECK_API_KEY || process.env.GOOGLE_FACT_CHECK_API_KEY;
     
