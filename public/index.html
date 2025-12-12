@@ -1909,10 +1909,6 @@
                             <h4>CHR - Coherence Rate</h4>
                             <p>Évalue la cohérence et la logique interne de la réponse générée.</p>
                         </div>
-                        <div class="feature-card">
-                            <h4>Confiance Globale</h4>
-                            <p>Score combiné calculé à partir de HI, CHR et fact-checking externe.</p>
-                        </div>
                     </div>
                 </div>
 
@@ -2150,7 +2146,7 @@
         // State
         let conversations = JSON.parse(localStorage.getItem('conversations') || '[]');
         let currentConversationId = null;
-        let messageStats = JSON.parse(localStorage.getItem('messageStats') || '{"hiHistory":[],"chrHistory":[],"confidenceHistory":[]}');
+        let messageStats = JSON.parse(localStorage.getItem('messageStats') || '{"hiHistory":[],"chrHistory":[]}');
         let isRecording = false;
         let recognition = null;
         
@@ -2692,22 +2688,6 @@
                 }
                 
                 // Métriques de qualité
-                // Métriques de qualité
-                
-                // Confiance moyenne basée sur HI et CHR
-                if (data.hallucinationIndex !== undefined && data.contextHistoryRatio !== undefined) {
-                    const hi = parseFloat(data.hallucinationIndex) || 0;
-                    const chr = parseFloat(data.contextHistoryRatio) || 0;
-                    const confidence = Math.max(0, 100 - ((hi + chr) / 2));
-                    const confColor = confidence >= 80 ? '#10B981' : confidence >= 60 ? '#F59E0B' : '#EF4444';
-                    
-                    metrics.quality.push({
-                        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 
-                        label: 'Confiance', 
-                        value: `${confidence.toFixed(0)}%`, 
-                        color: confColor
-                    });
-                }
                 
                 if (data.response && data.response.includes('HI:')) {
                     const hiMatch = data.response.match(/HI: ([0-9.]+)%/);
@@ -2742,16 +2722,6 @@
                         label: 'RAG', 
                         value: `${data.rag_verification.relevant_facts_count} fait${data.rag_verification.relevant_facts_count > 1 ? 's' : ''}`, 
                         color: '#10B981'
-                    });
-                }
-                
-                if (data.confidence_metrics && data.confidence_metrics.objective_confidence) {
-                    const conf = (data.confidence_metrics.objective_confidence * 100).toFixed(0);
-                    metrics.quality.push({
-                        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 
-                        label: 'Confiance', 
-                        value: `${conf}%`, 
-                        color: '#3B82F6'
                     });
                 }
                 
@@ -3295,11 +3265,6 @@
                 }
             }
 
-            if (data.confidence_metrics) {
-                messageStats.confidenceHistory.push(data.confidence_metrics.objective_confidence * 100);
-                if (messageStats.confidenceHistory.length > 20) messageStats.confidenceHistory.shift();
-            }
-
             localStorage.setItem('messageStats', JSON.stringify(messageStats));
         }
 
@@ -3618,7 +3583,7 @@
         function confirmClearData() {
             if (confirm('⚠️ Voulez-vous vraiment effacer toutes vos données ?\n\nCette action est irréversible et supprimera :\n- Toutes les conversations\n- Tous les messages\n- Toutes les statistiques\n\nExportez vos données avant si nécessaire.')) {
                 conversations = [];
-                messageStats = { hiHistory: [], chrHistory: [], confidenceHistory: [] };
+                messageStats = { hiHistory: [], chrHistory: [] };
                 localStorage.removeItem('conversations');
                 localStorage.removeItem('messageStats');
                 currentConversationId = null;
@@ -3644,10 +3609,6 @@
                 ? (messageStats.chrHistory.reduce((a, b) => a + b, 0) / messageStats.chrHistory.length).toFixed(1)
                 : 'N/A';
 
-            const avgConf = messageStats.confidenceHistory.length
-                ? (messageStats.confidenceHistory.reduce((a, b) => a + b, 0) / messageStats.confidenceHistory.length).toFixed(1)
-                : 'N/A';
-
             content.innerHTML = `
                 <div class="stat-item">
                     <span>Messages échangés</span>
@@ -3670,13 +3631,6 @@
                         <span class="info-icon" onclick="showTooltip(event, 'chr')">i</span>
                     </div>
                     <strong>${avgCHR}%</strong>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">
-                        <span>Confiance moyenne</span>
-                        <span class="info-icon" onclick="showTooltip(event, 'conf')">i</span>
-                    </div>
-                    <strong>${avgConf}%</strong>
                 </div>
             `;
 
@@ -3826,8 +3780,7 @@
             
             const explanations = {
                 hi: "<strong>Hallucination Index (HI)</strong><br>Mesure le risque qu'une réponse contienne des informations inventées ou non vérifiées.<br><br>• <15% : Très fiable<br>• 15-30% : Fiable<br>• 30-60% : Prudence<br>• >60% : Incertitude",
-                chr: "<strong>Composite Hallucination Risk (CHR)</strong><br>Indicateur global combinant la confiance de l'IA, l'incertitude et les contradictions détectées.<br><br>Plus le CHR est bas, plus la réponse est sûre et cohérente.",
-                conf: "<strong>Confiance Objective</strong><br>Niveau de certitude de l'IA dans sa réponse, calculé à partir des probabilités internes du modèle.<br><br>Une confiance élevée (>80%) indique une réponse solide et bien établie."
+                chr: "<strong>Composite Hallucination Risk (CHR)</strong><br>Indicateur global combinant la confiance de l'IA, l'incertitude et les contradictions détectées.<br><br>Plus le CHR est bas, plus la réponse est sûre et cohérente."
             };
             
             tooltip.innerHTML = explanations[type];
