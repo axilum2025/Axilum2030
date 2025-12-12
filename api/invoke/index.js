@@ -27,16 +27,10 @@ module.exports = async function (context, req) {
 
         const messages = [{
             role: "system",
-            content: `Tu es Axilum AI Plan PRO, un assistant intelligent propulsé par Llama 3.3 70B.
-Réponds de manière claire, précise et professionnelle en français.
-
-**Capacités exclusives Plan PRO** :
-✅ Analyse d'images (Azure Vision)
-✅ Génération d'images (DALL-E 3)
-✅ Résumé de documents PDF/DOCX
-✅ Historique étendu (20 messages)
-
-Si l'utilisateur demande une fonctionnalité Pro, informe-le des capacités disponibles.`
+            content: `Tu es Axilum AI, un assistant intelligent et serviable.
+Réponds de manière naturelle, claire et professionnelle en français.
+Ne mentionne pas tes capacités ou fonctionnalités à moins que l'utilisateur ne le demande explicitement.
+Sois concis et utile.`
         }];
 
         recentHistory.forEach(msg => {
