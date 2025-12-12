@@ -1,8 +1,39 @@
-// 🆓 PLAN GRATUIT - Llama 3.3 via Groq (100% Gratuit)
+// 🆓 PLAN GRATUIT - Llama 3.3 via Groq (100% Gratuit) + RAG
 // Groq API : https://groq.com
 // Modèle : llama-3.3-70b-versatile (70B paramètres)
 // Coût : $0 (30 req/min gratuit)
 // Vitesse : 500+ tokens/sec (ultra-rapide)
+
+// Fonction RAG - Recherche Brave
+async function searchBrave(query, apiKey) {
+    if (!apiKey) return null;
+    
+    try {
+        const response = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=3`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Subscription-Token': apiKey
+            }
+        });
+        
+        if (!response.ok) return null;
+        
+        const data = await response.json();
+        if (!data.web?.results) return null;
+        
+        // Extraire les 3 premiers résultats
+        const results = data.web.results.slice(0, 3).map(r => ({
+            title: r.title,
+            description: r.description,
+            url: r.url
+        }));
+        
+        return results;
+    } catch (error) {
+        return null;
+    }
+}
 
 module.exports = async function (context, req) {
     context.log('🆓 FREE PLAN - Llama 3.3 Request');
@@ -45,9 +76,9 @@ module.exports = async function (context, req) {
             let fallbackResponse = "Bonjour ! Je suis Axilum AI.";
             
             if (lowerMessage.includes('bonjour') || lowerMessage.includes('salut') || lowerMessage.includes('hello')) {
-                fallbackResponse = "Bonjour ! Je suis Axilum AI, votre assistant intelligent en mode gratuit. Comment puis-je vous aider aujourd'hui ?";
+                fallbackResponse = "Bonjour ! Je suis Axilum AI, votre assistant intelligent. Comment puis-je vous aider aujourd'hui ?";
             } else if (lowerMessage.includes('qui es-tu') || lowerMessage.includes('présente') || lowerMessage.includes('qui es tu')) {
-                fallbackResponse = "Je suis Axilum AI, un assistant conversationnel intelligent. En mode gratuit, je suis propulsé par Llama 3.2. Pour une expérience complète avec GPT-4o et analyse anti-hallucination, essayez le mode Pro !";
+                fallbackResponse = "Je suis Axilum AI, un assistant conversationnel intelligent propulsé par Llama 3.3 70B.";
             } else if (lowerMessage.includes('aide') || lowerMessage.includes('help')) {
                 fallbackResponse = "Je peux vous aider avec diverses questions ! Pour activer toutes mes capacités (Llama 3.2), l'administrateur doit configurer la clé API Groq. En attendant, n'hésitez pas à poser vos questions !";
             } else {
@@ -76,13 +107,28 @@ module.exports = async function (context, req) {
         const conversationHistory = req.body.history || [];
         const recentHistory = conversationHistory.slice(-10); // Limiter à 10 pour Free
 
+        // RAG - Recherche Brave (optionnelle)
+        const braveKey = process.env.BRAVE_API_KEY;
+        let contextFromSearch = '';
+        
+        if (braveKey) {
+            const searchResults = await searchBrave(userMessage, braveKey);
+            if (searchResults && searchResults.length > 0) {
+                contextFromSearch = '\n\nContexte de recherche web (utilise ces informations si pertinentes) :\n';
+                searchResults.forEach((r, i) => {
+                    contextFromSearch += `${i+1}. ${r.title}: ${r.description} [${r.url}]\n`;
+                });
+            }
+        }
+
         // Construire les messages
         const messages = [
             {
                 role: "system",
                 content: `Tu es Axilum AI, un assistant intelligent et serviable.
+Pense étape par étape avant de répondre.
 Réponds de manière naturelle, claire et professionnelle en français.
-Sois concis et utile.`
+Sois concis et utile.${contextFromSearch}`
             }
         ];
 
@@ -124,7 +170,7 @@ Sois concis et utile.`
             context.log.error('❌ Groq API Error:', response.status, errorText);
             
             // Message d'erreur plus informatif
-            let errorMessage = "Je suis temporairement indisponible en mode gratuit.";
+            let errorMessage = "Je suis temporairement indisponible.";
             
             if (response.status === 429) {
                 errorMessage = "Limite de requêtes atteinte (30/min). Veuillez patienter quelques secondes ou essayer le mode PRO.";
