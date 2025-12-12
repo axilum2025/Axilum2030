@@ -1624,11 +1624,6 @@
             animation: orb-listening 1.5s ease-in-out infinite;
         }
 
-        .voice-orb.waiting .voice-orb-core {
-            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-            animation: orb-waiting 2s ease-in-out infinite;
-        }
-
         .voice-orb.thinking .voice-orb-core {
             background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
             animation: orb-thinking 1s linear infinite;
@@ -1642,11 +1637,6 @@
         @keyframes orb-listening {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
-        }
-
-        @keyframes orb-waiting {
-            0%, 100% { transform: scale(1); opacity: 0.6; }
-            50% { transform: scale(1.05); opacity: 1; }
         }
 
         @keyframes orb-thinking {
@@ -1694,10 +1684,6 @@
 
         .voice-status-text.listening {
             color: #3B82F6;
-        }
-
-        .voice-status-text.waiting {
-            color: #F59E0B;
         }
 
         .voice-status-text.thinking {
@@ -1933,18 +1919,6 @@
                 <div class="voice-bar"></div>
                 <div class="voice-bar"></div>
                 <div class="voice-bar"></div>
-            </div>
-            
-            <!-- Voice Commands Help -->
-            <div style="margin-top: 20px; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 12px; text-align: left;">
-                <div style="font-weight: 600; margin-bottom: 8px; color: var(--accent);">📋 Commandes vocales :</div>
-                <div style="margin-bottom: 6px;"><strong>🎤 "Hi Axilum"</strong> → Activer l'écoute</div>
-                <div style="margin-bottom: 6px;"><strong>🔇 "Silence"</strong> → Arrêter de parler</div>
-                <div style="margin-bottom: 6px;"><strong>🔍 "Chercher..."</strong> → Rechercher des infos</div>
-                <div style="margin-bottom: 6px;"><strong>📖 "Expliquer..."</strong> → Obtenir une explication</div>
-                <div style="margin-bottom: 6px;"><strong>🔬 "Examiner..."</strong> → Analyse détaillée</div>
-                <div style="margin-bottom: 6px;"><strong>📊 "Analyser..."</strong> → Faire une analyse</div>
-                <div style="opacity: 0.7; margin-top: 8px; font-size: 11px;">Autres: résumer, traduire, comparer, définir, calculer</div>
             </div>
         </div>
     </div>
@@ -4144,25 +4118,8 @@
         let voiceRecognition = null;
         let voiceSynthesis = window.speechSynthesis;
         let currentUtterance = null;
-        let voiceState = 'idle'; // idle, listening, waiting, thinking, speaking
-        let isAwaitingCommand = false; // En attente d'une commande après activation
-        
-        // Commandes vocales supportées
-        const VOICE_COMMANDS = {
-            activation: ['hi axilum', 'hey axilum', 'salut axilum', 'bonjour axilum', 'hello axilum'],
-            stop: ['silence', 'stop', 'arrête', 'tais-toi', 'pause'],
-            actions: {
-                'examiner': 'examine en détail',
-                'chercher': 'recherche des informations sur',
-                'expliquer': 'explique-moi',
-                'analyser': 'analyse',
-                'résumer': 'fais un résumé de',
-                'traduire': 'traduis',
-                'comparer': 'compare',
-                'définir': 'définis',
-                'calculer': 'calcule'
-            }
-        };
+        let voiceState = 'idle'; // idle, listening, thinking, speaking
+        let isPaused = false; // Mis en pause par commande vocale
 
         // Initialiser la reconnaissance vocale
         function initVoiceRecognition() {
@@ -4182,16 +4139,40 @@
 
                     const transcript = Array.from(event.results)
                         .map(result => result[0].transcript)
-                        .join('')
-                        .toLowerCase()
-                        .trim();
+                        .join('');
+                    
+                    const transcriptLower = transcript.toLowerCase().trim();
                     
                     // Afficher la transcription en temps réel
                     updateVoiceStatus(`"${transcript}"`);
 
-                    // Si résultat final, traiter la commande
+                    // Si résultat final, traiter
                     if (event.results[event.results.length - 1].isFinal) {
-                        handleVoiceCommand(transcript);
+                        // Vérifier les commandes vocales
+                        if (transcriptLower.includes('arrête') || transcriptLower.includes('arrêter')) {
+                            // Arrêter complètement le mode vocal
+                            toggleVoiceMode();
+                            return;
+                        }
+                        
+                        if (transcriptLower.includes('pause')) {
+                            // Mettre en pause
+                            isPaused = true;
+                            stopVoiceListening();
+                            if (voiceSynthesis.speaking) {
+                                voiceSynthesis.cancel();
+                            }
+                            voiceState = 'idle';
+                            updateVoiceOrbState('idle');
+                            updateVoiceStatus('⏸️ En pause - Cliquez pour reprendre');
+                            showToast('⏸️ Mode vocal en pause', '');
+                            return;
+                        }
+                        
+                        // Sinon traiter comme message normal
+                        if (!isPaused) {
+                            handleVoiceMessage(transcript);
+                        }
                     }
                 };
 
@@ -4238,11 +4219,12 @@
                 }
 
                 // Démarrer l'écoute
+                isPaused = false;
                 setTimeout(() => {
                     startVoiceListening();
                 }, 300);
 
-                showToast('🎤 Dites "Hi Axilum" pour commencer', 'success');
+                showToast('🎤 Mode vocal activé - Parlez maintenant', 'success');
             } else {
                 // Désactiver le mode vocal
                 logo.classList.remove('voice-active');
@@ -4273,9 +4255,14 @@
                 return;
             }
             
-            voiceState = isAwaitingCommand ? 'waiting' : 'listening';
-            updateVoiceOrbState(voiceState);
-            updateVoiceStatus(isAwaitingCommand ? '🎤 Dites "Hi Axilum" pour parler' : 'En attente de votre message...');
+            if (isPaused) {
+                isPaused = false;
+                showToast('▶️ Mode vocal repris', 'success');
+            }
+            
+            voiceState = 'listening';
+            updateVoiceOrbState('listening');
+            updateVoiceStatus('🎤 Je vous écoute...');
             
             try {
                 voiceRecognition.start();
@@ -4296,67 +4283,14 @@
             }
         }
 
-        // Gérer les commandes vocales
-        async function handleVoiceCommand(transcript) {
+        // Gérer le message vocal
+        async function handleVoiceMessage(transcript) {
             if (!transcript || transcript.trim().length === 0) return;
 
-            console.log('🎙️ Commande vocale reçue:', transcript);
-
-            // Vérifier si c'est une commande d'activation
-            const isActivation = VOICE_COMMANDS.activation.some(cmd => transcript.includes(cmd));
-            if (isActivation && !isAwaitingCommand) {
-                console.log('✅ Commande d\'activation détectée');
-                isAwaitingCommand = true;
-                voiceState = 'waiting';
-                updateVoiceOrbState('waiting');
-                updateVoiceStatus('👂 Je vous écoute, que puis-je faire pour vous ?');
-                
-                // Confirmation vocale
-                const confirmUtterance = new SpeechSynthesisUtterance('Oui, je vous écoute');
-                confirmUtterance.lang = 'fr-FR';
-                confirmUtterance.rate = 1.1;
-                voiceSynthesis.speak(confirmUtterance);
-                return;
-            }
-
-            // Vérifier si c'est une commande d'arrêt
-            const isStop = VOICE_COMMANDS.stop.some(cmd => transcript.includes(cmd));
-            if (isStop) {
-                console.log('🛑 Commande d\'arrêt détectée');
-                isAwaitingCommand = false;
-                stopVoiceListening();
-                
-                // Arrêter la synthèse vocale
-                if (voiceSynthesis.speaking) {
-                    voiceSynthesis.cancel();
-                }
-                
-                voiceState = 'listening';
-                updateVoiceOrbState('listening');
-                updateVoiceStatus('🔇 Mode silencieux - Dites "Hi Axilum" pour continuer');
-                
-                setTimeout(() => startVoiceListening(), 500);
-                return;
-            }
-
-            // Si pas en attente de commande, ignorer
-            if (!isAwaitingCommand) {
-                console.log('⏸️ En attente d\'activation - commande ignorée');
-                return;
-            }
+            console.log('🎙️ Message vocal reçu:', transcript);
 
             // Arrêter l'écoute pendant le traitement
             stopVoiceListening();
-
-            // Vérifier si c'est une commande d'action
-            let processedTranscript = transcript;
-            for (const [keyword, prefix] of Object.entries(VOICE_COMMANDS.actions)) {
-                if (transcript.startsWith(keyword)) {
-                    processedTranscript = transcript.replace(keyword, prefix);
-                    console.log('🎯 Commande d\'action:', keyword, '→', processedTranscript);
-                    break;
-                }
-            }
 
             // État: réflexion
             voiceState = 'thinking';
@@ -4365,12 +4299,9 @@
 
             // Envoyer le message
             const userInput = document.getElementById('userInput');
-            userInput.value = processedTranscript;
+            userInput.value = transcript;
             
             await sendMessage();
-
-            // Réinitialiser l'état
-            isAwaitingCommand = false;
 
             // Attendre que la réponse soit affichée puis la lire
             setTimeout(() => {
@@ -4440,8 +4371,8 @@
             const statusText = document.getElementById('voiceStatusText');
             
             // Retirer toutes les classes d'état
-            voiceOrb.classList.remove('listening', 'waiting', 'thinking', 'speaking');
-            statusText.classList.remove('listening', 'waiting', 'thinking', 'speaking');
+            voiceOrb.classList.remove('listening', 'thinking', 'speaking');
+            statusText.classList.remove('listening', 'thinking', 'speaking');
             
             // Ajouter la classe appropriée
             if (state !== 'idle') {
