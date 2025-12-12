@@ -2765,6 +2765,8 @@
             if (type === 'bot' && displayText && displayText.length > 0) {
                 const ttsButton = document.createElement('button');
                 ttsButton.className = 'tts-button';
+                ttsButton.dataset.speaking = 'false';
+                ttsButton.dataset.text = displayText;
                 ttsButton.innerHTML = `
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
@@ -2790,7 +2792,7 @@
                 
                 ttsButton.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    speakText(displayText);
+                    toggleTTS(this);
                 });
                 
                 messageWrapper.style.position = 'relative';
@@ -3466,11 +3468,51 @@
             }
         }
 
-        // 🔊 Fonction pour lire un texte à voix haute
-        function speakText(text) {
+        // 🔊 Variable globale pour tracker le bouton TTS actif
+        let activeTTSButton = null;
+
+        // 🔊 Fonction pour basculer entre lecture et arrêt
+        function toggleTTS(button) {
             try {
+                const isSpeaking = window.speechSynthesis.speaking;
+                
+                if (isSpeaking) {
+                    // Arrêter la lecture
+                    window.speechSynthesis.cancel();
+                    
+                    // Réinitialiser tous les boutons
+                    document.querySelectorAll('.tts-button').forEach(btn => {
+                        btn.dataset.speaking = 'false';
+                        btn.innerHTML = `
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            </svg>
+                        `;
+                        btn.title = 'Écouter ce message';
+                    });
+                    
+                    activeTTSButton = null;
+                    return;
+                }
+                
+                // Lancer la lecture
+                const text = button.dataset.text;
                 if (!text || text.length === 0) {
                     showToast('Aucun texte à lire', 'warning');
+                    return;
+                }
+                
+                speakText(text, button);
+            } catch (e) {
+                console.error('Erreur toggleTTS:', e);
+            }
+        }
+
+        // 🔊 Fonction pour lire un texte à voix haute
+        function speakText(text, button = null) {
+            try {
+                if (!text || text.length === 0) {
                     return;
                 }
                 
@@ -3480,29 +3522,68 @@
                 // Créer et configurer la synthèse vocale
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'fr-FR';
-                utterance.rate = 1.0; // Vitesse normale
-                utterance.pitch = 1.0; // Tonalité normale
-                utterance.volume = 1.0; // Volume maximum
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
                 
-                // Événements pour feedback visuel
+                // Événements
                 utterance.onstart = () => {
-                    showToast('🔊 Lecture en cours...', 'info');
+                    if (button) {
+                        button.dataset.speaking = 'true';
+                        button.innerHTML = `
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="6" y="4" width="4" height="16"/>
+                                <rect x="14" y="4" width="4" height="16"/>
+                            </svg>
+                        `;
+                        button.title = 'Arrêter la lecture';
+                        button.style.background = '#EF4444';
+                        button.style.color = 'white';
+                        activeTTSButton = button;
+                    }
                 };
                 
                 utterance.onend = () => {
-                    console.log('TTS terminé');
+                    if (button) {
+                        button.dataset.speaking = 'false';
+                        button.innerHTML = `
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            </svg>
+                        `;
+                        button.title = 'Écouter ce message';
+                        button.style.background = 'var(--bg-secondary)';
+                        button.style.color = 'var(--text-secondary)';
+                    }
+                    activeTTSButton = null;
                 };
                 
                 utterance.onerror = (e) => {
-                    console.error('Erreur TTS:', e);
-                    showToast('Erreur lors de la lecture', 'error');
+                    // Ne pas afficher d'erreur si c'est une interruption (cancel)
+                    if (e.error !== 'interrupted' && e.error !== 'canceled') {
+                        console.error('Erreur TTS:', e);
+                    }
+                    
+                    if (button) {
+                        button.dataset.speaking = 'false';
+                        button.innerHTML = `
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            </svg>
+                        `;
+                        button.title = 'Écouter ce message';
+                        button.style.background = 'var(--bg-secondary)';
+                        button.style.color = 'var(--text-secondary)';
+                    }
+                    activeTTSButton = null;
                 };
                 
                 // Lancer la synthèse vocale
                 window.speechSynthesis.speak(utterance);
             } catch (e) {
                 console.error('Erreur TTS:', e);
-                showToast(`Erreur TTS: ${e.message}`, 'error');
             }
         }
 
