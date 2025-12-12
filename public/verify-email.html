@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification Email - Axilum AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 50px 40px;
+            text-align: center;
+        }
+        
+        .icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .email-badge {
+            display: inline-block;
+            background: #e8f4fd;
+            color: #0284c7;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        
+        .loader-text {
+            color: #666;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon" id="icon">✉️</div>
+        <h1 id="title">Vérification en cours...</h1>
+        <p class="subtitle" id="message">Nous vérifions votre adresse email</p>
+        
+        <div id="loader">
+            <div class="spinner"></div>
+            <p class="loader-text">Patientez quelques secondes...</p>
+        </div>
+        
+        <div id="result"></div>
+        
+        <div id="email-section" style="display: none;">
+            <div class="email-badge" id="email-display"></div>
+        </div>
+        
+        <button class="btn" id="continueBtn" onclick="continueToApp()" style="display: none;">
+            Accéder à l'app →
+        </button>
+    </div>
+    
+    <script>
+        async function verifyEmail() {
+            try {
+                // Récupérer le token de l'URL
+                const params = new URLSearchParams(window.location.search);
+                const token = params.get('token');
+                
+                if (!token) {
+                    showError('Aucun token fourni', 'Le lien de vérification est invalide');
+                    return;
+                }
+                
+                // Appeler l'API de vérification
+                const apiUrl = window.location.hostname === 'localhost'
+                    ? 'http://localhost:7071/api/verify-email'
+                    : '/api/verify-email';
+                
+                const response = await fetch(`${apiUrl}?token=${token}`);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Succès
+                    document.getElementById('icon').textContent = '✅';
+                    document.getElementById('title').textContent = 'Email vérifié !';
+                    document.getElementById('message').textContent = 'Votre adresse email a été vérifiée avec succès.';
+                    
+                    document.getElementById('email-section').style.display = 'block';
+                    document.getElementById('email-display').textContent = data.email;
+                    
+                    document.getElementById('loader').style.display = 'none';
+                    document.getElementById('continueBtn').style.display = 'block';
+                    
+                    // Stocker le statut
+                    localStorage.setItem('emailVerified_' + data.email, 'true');
+                    
+                } else {
+                    showError('Vérification échouée', data.error || 'Une erreur est survenue');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showError('Erreur réseau', 'Impossible de vérifier votre email. Vérifiez votre connexion.');
+            }
+        }
+        
+        function showError(title, message) {
+            document.getElementById('icon').textContent = '❌';
+            document.getElementById('title').textContent = title;
+            document.getElementById('message').textContent = message;
+            document.getElementById('loader').style.display = 'none';
+            
+            const result = document.getElementById('result');
+            result.className = 'status error';
+            result.innerHTML = '<strong>Erreur</strong>';
+            result.style.display = 'block';
+            
+            document.getElementById('continueBtn').style.display = 'block';
+            document.getElementById('continueBtn').textContent = 'Retour à l\'app →';
+        }
+        
+        function continueToApp() {
+            window.location.href = '/';
+        }
+        
+        // Lancer la vérification au chargement
+        window.addEventListener('load', verifyEmail);
+    </script>
+</body>
+</html>

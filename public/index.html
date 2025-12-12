@@ -5050,29 +5050,31 @@
                 return;
             }
             
-            // Stocker les données temporairement
+            // Créer l'utilisateur
             const newUser = {
                 id: Date.now().toString(),
                 name,
                 email,
                 password,
                 createdAt: Date.now(),
-                emailVerified: true,
+                emailVerified: false, // À vérifier par email
                 role: 'free'
             };
             
             users.push(newUser);
             localStorage.setItem('users', JSON.stringify(users));
             
+            // Connecter l'utilisateur (même sans vérification, il peut utiliser l'app)
             currentUser = { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role };
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
             closeSignupModal();
-            showToast(`🎉 Bienvenue ${name} ! Votre compte est créé.`, 'success');
+            showToast(`🎉 Bienvenue ${name} ! Un email de vérification a été envoyé.`, 'success');
             updateUIForAuth();
-            
             newConversation();
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Envoyer l'email de vérification en arrière-plan (ne bloque pas)
+            sendVerificationEmailWithToken(name, email);
             
             closeSignupModal();
             showToast(`🎉 Bienvenue ${name} ! Votre compte est créé.`, 'success');
@@ -5156,6 +5158,52 @@
         }
 
         // ========== EMAIL VERIFICATION ==========
+        
+        // Générer un token aléatoire pour la vérification email
+        function generateVerificationToken() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let token = '';
+            for (let i = 0; i < 64; i++) {
+                token += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return token;
+        }
+        
+        // Envoyer email de vérification avec lien (token)
+        async function sendVerificationEmailWithToken(name, email) {
+            try {
+                // Générer un token unique
+                const token = generateVerificationToken();
+                const verifyLink = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? `http://localhost:3000/verify-email.html?token=${token}`
+                    : `/verify-email.html?token=${token}`;
+                
+                // Construire le message avec le lien
+                const emailApiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:7071/api/send-verification-email'
+                    : '/api/send-verification-email';
+
+                const response = await fetch(emailApiEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name, 
+                        email,
+                        verifyLink,
+                        token,
+                        isVerificationLink: true
+                    })
+                });
+
+                if (!response.ok) {
+                    console.error('⚠️ Erreur envoi email:', response.status);
+                } else {
+                    console.log('✅ Email de vérification envoyé');
+                }
+            } catch (error) {
+                console.error('⚠️ Erreur envoi email:', error);
+            }
+        }
         
         async function sendVerificationEmail(name, email) {
             try {
