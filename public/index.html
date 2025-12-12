@@ -2662,19 +2662,13 @@
                     });
                 }
                 
-                // Tokens détaillés
-                if (data.promptTokens && data.completionTokens) {
+                // Prompt tokens uniquement
+                if (data.promptTokens) {
                     metrics.performance.push({
                         icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>', 
                         label: 'Prompt', 
                         value: data.promptTokens, 
                         color: '#3B82F6'
-                    });
-                    metrics.performance.push({
-                        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>', 
-                        label: 'Réponse', 
-                        value: data.completionTokens, 
-                        color: '#10B981'
                     });
                 }
                 
@@ -2704,21 +2698,19 @@
                         label: 'Qualité', 
                         value: `${data.qualityScore}%`, 
                         color: '#10B981'
-                    });
-                }
                 
-                if (data.advancedFeatures !== undefined) {
+                // Confiance moyenne basée sur HI et CHR
+                if (data.hallucinationIndex !== undefined && data.contextHistoryRatio !== undefined) {
+                    const hi = parseFloat(data.hallucinationIndex) || 0;
+                    const chr = parseFloat(data.contextHistoryRatio) || 0;
+                    const confidence = Math.max(0, 100 - ((hi + chr) / 2));
+                    const confColor = confidence >= 80 ? '#10B981' : confidence >= 60 ? '#F59E0B' : '#EF4444';
+                    
                     metrics.quality.push({
                         icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', 
-                        label: 'Fonctions', 
-                        value: data.advancedFeatures ? 'Avancées' : 'Standard', 
-                        color: data.advancedFeatures ? '#8B5CF6' : '#6B7280'
-                    });
-                }
-                
-                if (data.response && data.response.includes('HI:')) {
-                    const hiMatch = data.response.match(/HI: ([0-9.]+)%/);
-                    const chrMatch = data.response.match(/CHR: ([0-9.]+)%/);
+                        label: 'Confiance', 
+                        value: `${confidence.toFixed(0)}%`, 
+                        color: confColor
                     
                     if (hiMatch) {
                         const hiValue = parseFloat(hiMatch[1]);
