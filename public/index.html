@@ -1619,48 +1619,45 @@
                 </svg>
                 <span class="menu-item-text">Mon Compte</span>
             </button>
-            <!-- Section Fonctions (dépliable) -->
-            <button class="menu-item" onclick="toggleFunctionsSection()" title="Fonctions">
+            <!-- Section My Office (dépliable) -->
+            <button class="menu-item" onclick="toggleFunctionsSection()" title="My Office">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5a2 2 0 104 0 2 2 0 10-4 0zM5 11a2 2 0 102 2h2a2 2 0 102-2v-2a2 2 0 10-2-2H9a2 2 0 10-4 2v2zM13 13a2 2 0 112 2v2a2 2 0 11-2 2h-2a2 2 0 11-2-2v-2a2 2 0 112-2h2z"/>
                 </svg>
-                <span class="menu-item-text">Fonctions</span>
+                <span class="menu-item-text">My Office</span>
+                <span class="badge neutral" style="margin-left:8px;">PRO</span>
                 <svg id="functionsChevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px; height:16px; margin-left:auto; transition:transform 0.3s;">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
             </button>
             <div id="functionsContent" style="display:none; padding-left:20px;">
-                <!-- Item indenté: Analyse Vision (PRO) -->
-                <button class="menu-item" id="visionAnalyzeBtn" onclick="showToast('🔜 Prochainement disponible', '')" style="padding-left:30px;" title="Analyse Vision (PRO) - Prochainement disponible">
+                <!-- Item indenté: Analyse Vision -->
+                <button class="menu-item" id="visionAnalyzeBtn" onclick="showToast('🔜 Prochainement disponible', '')" style="padding-left:30px;" title="Analyse Vision - Prochainement disponible">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12zm11 3a3 3 0 100-6 3 3 0 000 6z"/>
                     </svg>
                     <span class="menu-item-text">Analyse Vision</span>
-                    <span class="badge neutral" style="margin-left:auto;">PRO</span>
                 </button>
-                <!-- Office Pro (Microsoft 365) -->
-                <button class="menu-item" onclick="openOfficePro()" style="padding-left:30px;" title="Office Pro - Calendrier, Tâches, Planning (PRO)">
+                <!-- To Do (Calendrier, Tâches, Planning) -->
+                <button class="menu-item" onclick="openOfficePro()" style="padding-left:30px;" title="To Do - Calendrier, Tâches, Planning">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                     </svg>
-                    <span class="menu-item-text">Office Pro</span>
-                    <span class="badge neutral" style="margin-left:auto;">PRO</span>
+                    <span class="menu-item-text">To Do</span>
                 </button>
-                <!-- Text Pro (Traitement de texte professionnel) -->
-                <button class="menu-item" onclick="openTextPro()" style="padding-left:30px;" title="Text Pro - Traitement de texte professionnel (PRO)">
+                <!-- Text (Traitement de texte professionnel) -->
+                <button class="menu-item" onclick="openTextPro()" style="padding-left:30px;" title="Text - Traitement de texte professionnel">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    <span class="menu-item-text">Text Pro</span>
-                    <span class="badge neutral" style="margin-left:auto;">PRO</span>
+                    <span class="menu-item-text">Text</span>
                 </button>
-                <!-- Excel Pro (Assistant Excel expert) -->
-                <button class="menu-item" onclick="openExcelPro()" style="padding-left:30px;" title="Excel Pro - Assistant Excel expert (PRO)">
+                <!-- Excel (Assistant Excel expert) -->
+                <button class="menu-item" onclick="openExcelPro()" style="padding-left:30px;" title="Excel - Assistant Excel expert">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                     </svg>
-                    <span class="menu-item-text">Excel Pro</span>
-                    <span class="badge neutral" style="margin-left:auto;">PRO</span>
+                    <span class="menu-item-text">Excel</span>
                 </button>
             </div>
             
