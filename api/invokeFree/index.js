@@ -108,17 +108,22 @@ module.exports = async function (context, req) {
         const recentHistory = conversationHistory.slice(-10); // Limiter à 10 pour Free
 
         // RAG - Recherche Brave (optionnelle)
-        const braveKey = process.env.BRAVE_API_KEY;
         let contextFromSearch = '';
         
-        if (braveKey) {
-            const searchResults = await searchBrave(userMessage, braveKey);
-            if (searchResults && searchResults.length > 0) {
-                contextFromSearch = '\n\nContexte de recherche web (utilise ces informations si pertinentes) :\n';
-                searchResults.forEach((r, i) => {
-                    contextFromSearch += `${i+1}. ${r.title}: ${r.description} [${r.url}]\n`;
-                });
+        try {
+            const braveKey = process.env.BRAVE_API_KEY;
+            if (braveKey) {
+                const searchResults = await searchBrave(userMessage, braveKey);
+                if (searchResults && searchResults.length > 0) {
+                    contextFromSearch = '\n\nContexte de recherche web (utilise ces informations si pertinentes) :\n';
+                    searchResults.forEach((r, i) => {
+                        contextFromSearch += `${i+1}. ${r.title}: ${r.description} [${r.url}]\n`;
+                    });
+                }
             }
+        } catch (ragError) {
+            context.log.warn('⚠️ RAG search failed, continuing without it:', ragError.message);
+            // Continue sans RAG
         }
 
         // Construire les messages
