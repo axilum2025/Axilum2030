@@ -3062,8 +3062,8 @@
                     </svg>
                 `;
                 ttsButton.title = 'Écouter ce message';
-                // Initialement caché (opacity: 0)
-                ttsButton.style.cssText = 'position: absolute; bottom: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: var(--bg-secondary); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; color: var(--text-secondary); opacity: 0; pointer-events: none;';
+                // Initialement caché (opacity: 0) - Position à droite avant le point d'interrogation
+                ttsButton.style.cssText = 'position: absolute; bottom: 8px; right: 444px; width: 28px; height: 28px; border-radius: 50%; background: var(--bg-secondary); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; color: var(--text-secondary); opacity: 0; pointer-events: none;';
                 
                 // Faire apparaître le bouton après 300ms (après l'écriture)
                 setTimeout(() => {
