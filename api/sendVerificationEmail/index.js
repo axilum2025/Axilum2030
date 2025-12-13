@@ -4,6 +4,7 @@
  */
 
 const sgMail = require('@sendgrid/mail');
+const { storeCode } = require('../utils/codeStorage');
 
 module.exports = async function (context, req) {
     context.log('📧 Send Verification Email function triggered');
@@ -21,6 +22,13 @@ module.exports = async function (context, req) {
         }
         
         context.log(`✅ Préparation d'email pour ${email}`);
+        
+        // Stocker le token avec expiration 24h
+        if (token) {
+            const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 heures
+            await storeCode(token, email, expiresAt);
+            context.log(`💾 Token stocké pour ${email}, expire dans 24h`);
+        }
         
         // Retourner immédiatement
         context.res = {

@@ -2,6 +2,7 @@
  * Vérifier un token d'email et marquer l'email comme vérifié
  */
 
+const { getCode, deleteCode } = require('../utils/codeStorage');
 const { getUserByEmail, updateUser } = require('../utils/userStorage');
 
 module.exports = async function (context, req) {
@@ -22,9 +23,8 @@ module.exports = async function (context, req) {
             return;
         }
         
-        // Récupérer les tokens stockés
-        const storedTokens = JSON.parse(process.env.VERIFICATION_TOKENS || '{}');
-        const tokenData = storedTokens[token];
+        // Récupérer le token depuis Azure Storage
+        const tokenData = await getCode(token);
         
         if (!tokenData) {
             context.log.warn(`⚠️ Token invalide: ${token}`);
@@ -43,7 +43,7 @@ module.exports = async function (context, req) {
         const now = Date.now();
         if (tokenData.expiresAt < now) {
             context.log.warn(`⚠️ Token expiré: ${token}`);
-            delete storedTokens[token];
+            await deleteCode(token);
             
             context.res = {
                 status: 400,
@@ -56,14 +56,13 @@ module.exports = async function (context, req) {
             return;
         }
         
-        // Token valide - marquer l'email comme vérifié
-        const email = tokenData.email;
+        // Token valide - email associé au token est stocké dans tokenData.code
+        const email = tokenData.code;
         
-        context.log(`✅ Email vérié: ${email}`);
+        context.log(`✅ Email vérifié: ${email}`);
         
         // Supprimer le token
-        delete storedTokens[token];
-        process.env.VERIFICATION_TOKENS = JSON.stringify(storedTokens);
+        await deleteCode(token);
         
         context.res = {
             status: 200,
