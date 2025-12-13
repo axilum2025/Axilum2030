@@ -5169,7 +5169,7 @@
             return token;
         }
         
-        // Envoyer email de vérification avec lien (token)
+        // Envoyer email de vérification avec code à 6 chiffres
         async function sendVerificationEmail(name, email, verificationCode) {
             try {
                 const emailApiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -5193,38 +5193,6 @@
                 }
             } catch (error) {
                 console.error('⚠️ Erreur envoi email:', error);
-            }
-        }
-
-                const emailApiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                    ? 'http://localhost:7071/api/send-verification-email'
-                    : '/api/send-verification-email';
-
-                const response = await fetch(emailApiEndpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email })
-                });
-
-                if (!response.ok) {
-                    // Erreur HTTP réelle
-                    showToast('❌ Erreur lors de l\'envoi de l\'email. Réessayez.', 'error');
-                    return;
-                }
-
-                const data = await response.json();
-
-                // Fermer modal signup et ouvrir modal vérification
-                closeSignupModal();
-                showVerificationModal(data.code);
-
-                // Afficher le toast de succès uniquement si l'email est envoyé
-                showToast('✅ Code envoyé par email !', 'success');
-
-            } catch (error) {
-                console.error('Erreur envoi email:', error);
-                showToast('❌ Erreur lors de l\'envoi de l\'email. Réessayez.', 'error');
-                // En cas d'erreur, garder la modal signup ouverte
             }
         }
         

@@ -1,10 +1,9 @@
 /**
  * Azure Function - Send Verification Email
- * Utilise SendGrid pour envoyer le lien de vérification
+ * Utilise SendGrid pour envoyer le code de vérification à 6 chiffres
  */
 
 const sgMail = require('@sendgrid/mail');
-const { storeCode } = require('../utils/codeStorage');
 
 module.exports = async function (context, req) {
     context.log('📧 Send Verification Email function triggered');
