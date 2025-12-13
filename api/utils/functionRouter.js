@@ -1,10 +1,20 @@
 // 🎯 Function Router - Orchestration intelligente des fonctions avec cache et retry
 // Gère les appels parallèles, séquentiels, cache, et gestion d'erreurs
 
-const NodeCache = require('node-cache');
+let NodeCache, cache;
 
-// Cache simple (TTL: 5 minutes)
-const cache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+try {
+    NodeCache = require('node-cache');
+    // Cache simple (TTL: 5 minutes)
+    cache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+} catch (e) {
+    // Fallback si node-cache pas installé
+    console.warn('⚠️ node-cache non installé, cache désactivé');
+    cache = {
+        get: () => undefined,
+        set: () => true
+    };
+}
 
 /**
  * Détecte quelle(s) fonction(s) appeler selon le message utilisateur
