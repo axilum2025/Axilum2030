@@ -2462,6 +2462,8 @@
         // 📅 Système To Do - Tâches et Calendrier
         let userTasks = JSON.parse(localStorage.getItem('userTasks') || '[]');
         let userEvents = JSON.parse(localStorage.getItem('userEvents') || '[]');
+        let userProjects = JSON.parse(localStorage.getItem('userProjects') || '[]');
+        let notificationSettings = JSON.parse(localStorage.getItem('notificationSettings') || '{"enabled": false, "reminderMinutes": 15}');
         
         // Email Verification
         let pendingUser = null;
@@ -2549,6 +2551,13 @@
             document.getElementById('userInput').addEventListener('focus', () => {
                 closeSidebar();
             });
+            
+            // 🔔 Vérifier les notifications au démarrage
+            if (notificationSettings.enabled) {
+                checkUpcomingNotifications();
+                // Revérifier toutes les 5 minutes
+                setInterval(checkUpcomingNotifications, 5 * 60 * 1000);
+            }
 
             // Fermer le menu utilisateur si on clique ailleurs
             document.addEventListener('click', (e) => {
@@ -3423,7 +3432,7 @@
         }
         
         // Ajouter une tâche
-        function addTask(title, dueDate = null, priority = 'normal') {
+        function addTask(title, dueDate = null, priority = 'normal', category = 'général', projectId = null) {
             const task = {
                 id: Date.now(),
                 title: title,
@@ -3431,10 +3440,15 @@
                 createdAt: new Date().toISOString(),
                 dueDate: dueDate,
                 priority: priority, // 'low', 'normal', 'high'
+                category: category, // 'général', 'travail', 'personnel', 'voyage', 'études', 'projet'
+                projectId: projectId,
+                progress: 0, // 0-100%
+                subtasks: [],
                 userId: currentUser?.email || 'guest'
             };
             userTasks.push(task);
             saveTasks();
+            scheduleNotification(task);
             return task;
         }
         
@@ -3445,6 +3459,12 @@
                 task.completed = true;
                 task.completedAt = new Date().toISOString();
                 saveTasks();
+                
+                // Mettre à jour la progression du projet si applicable
+                if (task.projectId) {
+                    updateProjectProgress(task.projectId);
+                }
+                
                 return true;
             }
             return false;
@@ -3517,24 +3537,240 @@
             return conflicts.length === 0;
         }
         
+        // 📊 GESTION DES PROJETS
+        function saveProjects() {
+            localStorage.setItem('userProjects', JSON.stringify(userProjects));
+        }
+        
+        function createProject(name, category, description = '', deadline = null) {
+            const project = {
+                id: Date.now(),
+                name: name,
+                category: category, // 'voyage', 'études', 'travail', 'personnel'
+                description: description,
+                deadline: deadline,
+                createdAt: new Date().toISOString(),
+                progress: 0,
+                status: 'en cours', // 'en cours', 'terminé', 'en attente'
+                tasks: [],
+                userId: currentUser?.email || 'guest'
+            };
+            userProjects.push(project);
+            saveProjects();
+            return project;
+        }
+        
+        function updateProjectProgress(projectId) {
+            const project = userProjects.find(p => p.id === projectId);
+            if (!project) return;
+            
+            const projectTasks = userTasks.filter(t => t.projectId === projectId);
+            if (projectTasks.length === 0) {
+                project.progress = 0;
+                return;
+            }
+            
+            const completedTasks = projectTasks.filter(t => t.completed).length;
+            project.progress = Math.round((completedTasks / projectTasks.length) * 100);
+            
+            if (project.progress === 100) {
+                project.status = 'terminé';
+            }
+            
+            saveProjects();
+        }
+        
+        function getProjectStats(projectId) {
+            const project = userProjects.find(p => p.id === projectId);
+            if (!project) return null;
+            
+            const projectTasks = userTasks.filter(t => t.projectId === projectId);
+            const completed = projectTasks.filter(t => t.completed).length;
+            const pending = projectTasks.length - completed;
+            
+            return {
+                project: project,
+                totalTasks: projectTasks.length,
+                completed: completed,
+                pending: pending,
+                progress: project.progress
+            };
+        }
+        
+        // 🔔 SYSTÈME DE NOTIFICATIONS
+        function saveNotificationSettings() {
+            localStorage.setItem('notificationSettings', JSON.stringify(notificationSettings));
+        }
+        
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                return false;
+            }
+            
+            if (Notification.permission === 'granted') {
+                notificationSettings.enabled = true;
+                saveNotificationSettings();
+                return true;
+            }
+            
+            if (Notification.permission !== 'denied') {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    notificationSettings.enabled = true;
+                    saveNotificationSettings();
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        function scheduleNotification(item) {
+            if (!notificationSettings.enabled) return;
+            
+            const itemDate = new Date(item.dueDate || item.startDate);
+            if (!itemDate || isNaN(itemDate.getTime())) return;
+            
+            const now = new Date();
+            const reminderTime = new Date(itemDate.getTime() - (notificationSettings.reminderMinutes * 60 * 1000));
+            
+            if (reminderTime > now) {
+                const delay = reminderTime.getTime() - now.getTime();
+                
+                setTimeout(() => {
+                    if (Notification.permission === 'granted') {
+                        const type = item.title ? '📋 Tâche' : '📅 Événement';
+                        new Notification(`${type} à venir`, {
+                            body: `${item.title} dans ${notificationSettings.reminderMinutes} minutes`,
+                            icon: '/favicon.ico',
+                            tag: `reminder-${item.id}`
+                        });
+                    }
+                }, delay);
+            }
+        }
+        
+        function sendImmediateNotification(title, body) {
+            if (!notificationSettings.enabled || Notification.permission !== 'granted') return;
+            
+            new Notification(title, {
+                body: body,
+                icon: '/favicon.ico'
+            });
+        }
+        
+        // Vérifier les notifications au chargement
+        function checkUpcomingNotifications() {
+            const now = new Date();
+            const oneHour = new Date(now.getTime() + 60 * 60 * 1000);
+            
+            // Vérifier les tâches
+            userTasks.filter(t => !t.completed && t.dueDate).forEach(task => {
+                const dueDate = new Date(task.dueDate);
+                if (dueDate > now && dueDate <= oneHour) {
+                    scheduleNotification(task);
+                }
+            });
+            
+            // Vérifier les événements
+            userEvents.forEach(event => {
+                const startDate = new Date(event.startDate);
+                if (startDate > now && startDate <= oneHour) {
+                    scheduleNotification(event);
+                }
+            });
+        }
+        
         // 🤖 DÉTECTION INTELLIGENTE DES COMMANDES TO DO
         function detectAndHandleTodoCommand(message) {
             const lowerMsg = message.toLowerCase();
             
-            // AJOUTER UNE TÂCHE
-            if (lowerMsg.match(/ajoute|cr[ée]e.*t[aâ]che|nouvelle t[aâ]che|note|rappel/i)) {
-                // Extraire le titre de la tâche
-                let taskTitle = message.replace(/(ajoute|cr[ée]e|nouvelle|t[aâ]che|note|rappel|à|mes|ma|une|un)/gi, '').trim();
+            // ACTIVER LES NOTIFICATIONS
+            if (lowerMsg.match(/active|autorise.*notifications?|rappels?/i)) {
+                requestNotificationPermission().then(granted => {
+                    if (granted) {
+                        checkUpcomingNotifications();
+                        addMessage(message, 'user');
+                        addMessage("✅ Notifications activées ! Vous recevrez des rappels 15 minutes avant vos événements et tâches.\n\n💡 Les notifications fonctionnent même quand l'onglet est ouvert en arrière-plan.", 'bot');
+                    } else {
+                        addMessage(message, 'user');
+                        addMessage("❌ Impossible d'activer les notifications. Veuillez autoriser les notifications dans les paramètres de votre navigateur.", 'bot');
+                    }
+                });
+                return { handled: true, response: '' };
+            }
+            
+            // CRÉER UN PROJET
+            if (lowerMsg.match(/cr[ée]e.*projet|nouveau projet|plan.*voyage|plan.*[ée]tudes/i)) {
+                let projectName = message.replace(/(cr[ée]e|nouveau|projet|un|une|de|pour|mon|ma)/gi, '').trim();
                 
-                if (taskTitle.length < 3) {
-                    return { handled: true, response: "❓ Quelle tâche voulez-vous ajouter ? Exemple: 'Ajoute appeler le client à mes tâches'" };
+                let category = 'général';
+                if (lowerMsg.includes('voyage')) category = 'voyage';
+                else if (lowerMsg.match(/[ée]tudes?|cours|formation/)) category = 'études';
+                else if (lowerMsg.match(/travail|professionnel|entreprise/)) category = 'travail';
+                
+                if (projectName.length < 3) {
+                    return { handled: true, response: "❓ Quel est le nom du projet ? Exemple: 'Crée un projet voyage à Paris'" };
                 }
                 
-                const task = addTask(taskTitle);
-                return { 
-                    handled: true, 
-                    response: `✅ Tâche ajoutée: "${task.title}"\n\n📋 Vous avez maintenant ${userTasks.filter(t => !t.completed).length} tâche(s) active(s).` 
+                const project = createProject(projectName, category);
+                return {
+                    handled: true,
+                    response: `✅ Projet créé: "${project.name}"\n📁 Catégorie: ${project.category}\n🆔 ID: ${project.id}\n\n💡 Ajoutez des tâches avec: "Ajoute [tâche] au projet ${project.id}"`
                 };
+            }
+            
+            // VOIR LES PROJETS
+            if (lowerMsg.match(/mes projets|liste.*projets|projets? en cours/i)) {
+                if (userProjects.length === 0) {
+                    return { handled: true, response: "📁 Aucun projet créé. Dites 'Crée un projet [nom]' pour commencer !" };
+                }
+                
+                let response = `📊 **Vos projets** (${userProjects.length}):\n\n`;
+                userProjects.forEach(project => {
+                    const stats = getProjectStats(project.id);
+                    const emoji = project.category === 'voyage' ? '✈️' : project.category === 'études' ? '📚' : project.category === 'travail' ? '💼' : '📁';
+                    response += `${emoji} **${project.name}** (${project.category})\n`;
+                    response += `   Progress: ${project.progress}% | Tâches: ${stats.completed}/${stats.totalTasks}\n`;
+                    response += `   ID: ${project.id}\n\n`;
+                });
+                
+                return { handled: true, response };
+            }
+            
+            // AJOUTER UNE TÂCHE
+            if (lowerMsg.match(/ajoute|cr[ée]e.*t[aâ]che|nouvelle t[aâ]che|note|rappel/i)) {
+                // Détecter la catégorie
+                let category = 'général';
+                if (lowerMsg.includes('travail') || lowerMsg.includes('professionnel')) category = 'travail';
+                else if (lowerMsg.includes('personnel')) category = 'personnel';
+                else if (lowerMsg.includes('voyage')) category = 'voyage';
+                else if (lowerMsg.match(/[ée]tudes?|cours/)) category = 'études';
+                
+                // Détecter si c'est lié à un projet
+                const projectMatch = message.match(/projet (\d+)|au projet (\d+)/i);
+                const projectId = projectMatch ? parseInt(projectMatch[1] || projectMatch[2]) : null;
+                
+                // Extraire le titre de la tâche
+                let taskTitle = message.replace(/(ajoute|cr[ée]e|nouvelle|t[aâ]che|note|rappel|à|mes|ma|une|un|travail|personnel|voyage|[ée]tudes?|projet \d+|au projet \d+)/gi, '').trim();
+                
+                if (taskTitle.length < 3) {
+                    return { handled: true, response: "❓ Quelle tâche voulez-vous ajouter ? Exemple: 'Ajoute réserver l'hôtel à mes tâches voyage'" };
+                }
+                
+                const task = addTask(taskTitle, null, 'normal', category, projectId);
+                
+                let response = `✅ Tâche ajoutée: "${task.title}"\n📁 Catégorie: ${category}`;
+                if (projectId) {
+                    const project = userProjects.find(p => p.id === projectId);
+                    if (project) {
+                        response += `\n📊 Projet: ${project.name}`;
+                        updateProjectProgress(projectId);
+                    }
+                }
+                response += `\n\n📋 ${userTasks.filter(t => !t.completed).length} tâche(s) active(s).`;
+                
+                return { handled: true, response };
             }
             
             // MONTRER LES TÂCHES
@@ -3548,10 +3784,14 @@
                 let response = `📋 **Vos tâches** (${activeTasks.length}):\n\n`;
                 activeTasks.forEach((task, index) => {
                     const priority = task.priority === 'high' ? '🔴' : task.priority === 'low' ? '🔵' : '🟡';
-                    response += `${index + 1}. ${priority} ${task.title}`;
+                    const categoryIcon = task.category === 'voyage' ? '✈️' : task.category === 'études' ? '📚' : task.category === 'travail' ? '💼' : task.category === 'personnel' ? '👤' : '📋';
+                    response += `${index + 1}. ${priority} ${categoryIcon} ${task.title}`;
                     if (task.dueDate) {
                         const dueDate = new Date(task.dueDate);
                         response += ` (📅 ${dueDate.toLocaleDateString('fr-FR')})`;
+                    }
+                    if (task.progress > 0) {
+                        response += ` [${task.progress}%]`;
                     }
                     response += `\n`;
                 });
