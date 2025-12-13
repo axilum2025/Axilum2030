@@ -5176,7 +5176,7 @@
                 const token = generateVerificationToken();
                 const verifyLink = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                     ? `http://localhost:3000/verify-email.html?token=${token}`
-                    : `/verify-email.html?token=${token}`;
+                    : `${window.location.origin}/verify-email.html?token=${token}`;
                 
                 // Construire le message avec le lien
                 const emailApiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
