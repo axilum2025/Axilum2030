@@ -3568,7 +3568,7 @@
                 }
                 
                 // Tenter d'extraire le numéro de tâche
-                const numMatch = message.match(/\\d+/);
+                const numMatch = message.match(/\d+/);
                 if (numMatch) {
                     const taskNum = parseInt(numMatch[0]) - 1;
                     if (taskNum >= 0 && taskNum < activeTasks.length) {
@@ -3600,7 +3600,7 @@
                 }
                 
                 // Détection d'heure
-                const timeMatch = message.match(/(\\d{1,2})h(\\d{2})?/);
+                const timeMatch = message.match(/(\d{1,2})h(\d{2})?/);
                 if (timeMatch) {
                     startDate.setHours(parseInt(timeMatch[1]));
                     if (timeMatch[2]) startDate.setMinutes(parseInt(timeMatch[2]));
