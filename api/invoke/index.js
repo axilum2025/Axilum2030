@@ -34,6 +34,16 @@ async function searchBrave(query, apiKey) {
 }
 
 module.exports = async function (context, req) {
+    // ✨ Détection V2 via query parameter ou body
+    const useV2 = req.query?.useV2 === 'true' || req.body?.useV2 === true;
+    
+    if (useV2) {
+        context.log('🚀 V2 ARCHITECTURE - Scalable invoke');
+        // Importer et exécuter la logique V2
+        const invokeV2 = require('../invoke-v2/index.js');
+        return await invokeV2(context, req);
+    }
+    
     context.log('💎 PRO PLAN - Llama 3.3 70B Request (Groq + Azure Functions + RAG)');
 
     if (req.method === 'OPTIONS') {

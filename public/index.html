@@ -2445,19 +2445,17 @@
         
         // Get current endpoint based on plan
         function getEndpoint() {
+            // Toujours utiliser l'endpoint standard
+            return currentPlan === 'free' ? AGENT_ENDPOINT_FREE : AGENT_ENDPOINT_PRO;
+        }
+        
+        // Détermine si on utilise V2 via le paramètre useV2
+        function shouldUseV2ForRequest(rolloutPercentage) {
             // 🧪 A/B TESTING: Tester architecture V2 sur un pourcentage d'utilisateurs
-            const V2_ROLLOUT_PERCENTAGE = 0; // 0% = désactivé, 10 = 10%, 100 = 100%
+            const V2_ROLLOUT_PERCENTAGE = rolloutPercentage || 0; // 0% = désactivé, 10 = 10%, 100 = 100%
             
             // Vérifier si cet utilisateur fait partie du test V2
-            const useV2 = shouldUseV2(V2_ROLLOUT_PERCENTAGE);
-            
-            if (useV2) {
-                // Architecture V2 (scalable)
-                return currentPlan === 'free' ? '/api/invokeFree-v2' : '/api/invoke-v2';
-            } else {
-                // Architecture V1 (actuelle)
-                return currentPlan === 'free' ? AGENT_ENDPOINT_FREE : AGENT_ENDPOINT_PRO;
-            }
+            return shouldUseV2(V2_ROLLOUT_PERCENTAGE);
         }
         
         // Détermine si cet utilisateur doit utiliser V2
@@ -2794,11 +2792,14 @@
             try {
                 const requestStart = Date.now();
                 const endpoint = getEndpoint();
-                const isV2 = endpoint.includes('-v2');
+                
+                // 🧪 Déterminer si on utilise V2 via le paramètre
+                const V2_ROLLOUT_PERCENTAGE = 0; // Modifier cette valeur pour activer le rollout
+                const useV2 = shouldUseV2ForRequest(V2_ROLLOUT_PERCENTAGE);
                 
                 console.log(`🎯 Using ${currentPlan.toUpperCase()} endpoint:`, endpoint);
-                if (isV2) {
-                    console.log('🧪 Architecture V2 (scalable) utilisée');
+                if (useV2) {
+                    console.log('🧪 Architecture V2 (scalable) utilisée - Paramètre useV2=true');
                 } else {
                     console.log('📊 Architecture V1 (actuelle) utilisée');
                 }
@@ -2809,7 +2810,8 @@
                     body: JSON.stringify({ 
                         message,
                         conversationId: currentConversationId,
-                        history: history
+                        history: history,
+                        useV2: useV2  // ✨ Paramètre pour activer V2
                     })
                 });
 
