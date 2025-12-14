@@ -4459,6 +4459,17 @@
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px;">
+                        <!-- Assistant IA Conversationnel -->
+                        <div style="position: relative;">
+                            <button id="aiAssistantBtn" onclick="toggleAiAssistant()" style="padding: 8px; background: rgba(139, 92, 246, 0.1); color: #8B5CF6; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;" title="Assistant IA">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                    <circle cx="9" cy="10" r="1" fill="currentColor"/>
+                                    <circle cx="15" cy="10" r="1" fill="currentColor"/>
+                                    <path d="M9 14a4 4 0 0 0 6 0"/>
+                                </svg>
+                            </button>
+                        </div>
                         <div style="position: relative;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none;">
                                 <circle cx="11" cy="11" r="8"/>
@@ -4674,6 +4685,189 @@
             selectedTask = null;
             detailsPanelOpen = false;
             stopNotificationCheck();
+        }
+
+        // Assistant IA Conversationnel
+        let aiAssistantOpen = false;
+
+        function toggleAiAssistant() {
+            aiAssistantOpen = !aiAssistantOpen;
+            if (aiAssistantOpen) {
+                showAiAssistantPanel();
+            } else {
+                hideAiAssistantPanel();
+            }
+        }
+
+        function showAiAssistantPanel() {
+            const panel = document.createElement('div');
+            panel.id = 'aiAssistantPanel';
+            panel.innerHTML = `
+                <div style="position: fixed; bottom: 80px; right: 20px; width: 380px; max-height: 500px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.15); z-index: 2000; display: flex; flex-direction: column; overflow: hidden;">
+                    <!-- Header -->
+                    <div style="padding: 16px; background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%); color: white; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                <circle cx="9" cy="10" r="1" fill="currentColor"/>
+                                <circle cx="15" cy="10" r="1" fill="currentColor"/>
+                                <path d="M9 14a4 4 0 0 0 6 0"/>
+                            </svg>
+                            <div>
+                                <div style="font-weight: 600; font-size: 16px;">Assistant IA</div>
+                                <div style="font-size: 11px; opacity: 0.9;">Organisez vos tâches intelligemment</div>
+                            </div>
+                        </div>
+                        <button onclick="toggleAiAssistant()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 6px; cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Suggestions rapides -->
+                    <div style="padding: 12px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; flex-wrap: gap: 6px;">
+                        <button onclick="askAi('Organise ma semaine')" style="padding: 6px 12px; background: white; border: 1px solid var(--border-color); border-radius: 12px; font-size: 12px; cursor: pointer; color: var(--text-primary); transition: all 0.2s;" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='white'">
+                            📅 Organise ma semaine
+                        </button>
+                        <button onclick="askAi('Qu\\'est-ce que je dois faire maintenant ?')" style="padding: 6px 12px; background: white; border: 1px solid var(--border-color); border-radius: 12px; font-size: 12px; cursor: pointer; color: var(--text-primary); transition: all 0.2s;" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='white'">
+                            ⚡ Quoi faire maintenant ?
+                        </button>
+                        <button onclick="askAi('Qu\\'est-ce qui est urgent ?')" style="padding: 6px 12px; background: white; border: 1px solid var(--border-color); border-radius: 12px; font-size: 12px; cursor: pointer; color: var(--text-primary); transition: all 0.2s;" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='white'">
+                            🔥 Tâches urgentes
+                        </button>
+                    </div>
+
+                    <!-- Conversation -->
+                    <div id="aiChatMessages" style="flex: 1; padding: 16px; overflow-y: auto; max-height: 300px; background: var(--bg-primary);">
+                        <div style="text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px;">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 12px; opacity: 0.3;">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            <div>Posez-moi des questions sur vos tâches</div>
+                            <div style="font-size: 11px; margin-top: 8px; opacity: 0.7;">Exemples: "Organise ma semaine", "Déplace ça à demain"</div>
+                        </div>
+                    </div>
+
+                    <!-- Input -->
+                    <div style="padding: 12px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; background: var(--bg-secondary);">
+                        <input id="aiCommandInput" type="text" placeholder="Demandez quelque chose..." onkeypress="if(event.key==='Enter') askAi(this.value)" style="flex: 1; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: white; font-size: 14px; outline: none;">
+                        <button onclick="askAi(document.getElementById('aiCommandInput').value)" style="padding: 10px 16px; background: #8B5CF6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='#7C3AED'" onmouseout="this.style.background='#8B5CF6'">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(panel);
+        }
+
+        function hideAiAssistantPanel() {
+            const panel = document.getElementById('aiAssistantPanel');
+            if (panel) panel.remove();
+        }
+
+        async function askAi(command) {
+            if (!command || !command.trim()) return;
+
+            const input = document.getElementById('aiCommandInput');
+            if (input) input.value = '';
+
+            const messagesContainer = document.getElementById('aiChatMessages');
+            if (!messagesContainer) return;
+
+            // Effacer message vide
+            if (messagesContainer.children.length === 1 && messagesContainer.children[0].textContent.includes('Posez-moi des questions')) {
+                messagesContainer.innerHTML = '';
+            }
+
+            // Message utilisateur
+            const userMsg = document.createElement('div');
+            userMsg.style.cssText = 'margin-bottom: 12px; text-align: right;';
+            userMsg.innerHTML = `<div style="display: inline-block; background: #8B5CF6; color: white; padding: 10px 14px; border-radius: 12px 12px 4px 12px; max-width: 80%; font-size: 13px;">${command}</div>`;
+            messagesContainer.appendChild(userMsg);
+
+            // Message loading
+            const loadingMsg = document.createElement('div');
+            loadingMsg.id = 'aiLoadingMsg';
+            loadingMsg.style.cssText = 'margin-bottom: 12px;';
+            loadingMsg.innerHTML = `<div style="display: inline-block; background: var(--bg-secondary); color: var(--text-secondary); padding: 10px 14px; border-radius: 12px 12px 12px 4px; font-size: 13px;">
+                <span style="animation: pulse 1.5s infinite;">Réflexion en cours...</span>
+            </div>`;
+            messagesContainer.appendChild(loadingMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            try {
+                const response = await fetch('/api/taskManager/smart-command', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: command })
+                });
+
+                const data = await response.json();
+                loadingMsg.remove();
+
+                if (data.error) {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.style.cssText = 'margin-bottom: 12px;';
+                    errorMsg.innerHTML = `<div style="display: inline-block; background: #FEE2E2; color: #DC2626; padding: 10px 14px; border-radius: 12px 12px 12px 4px; max-width: 80%; font-size: 13px;">❌ ${data.error}</div>`;
+                    messagesContainer.appendChild(errorMsg);
+                } else {
+                    // Réponse IA
+                    const aiMsg = document.createElement('div');
+                    aiMsg.style.cssText = 'margin-bottom: 12px;';
+                    
+                    let responseHtml = `<div style="display: inline-block; background: var(--bg-secondary); color: var(--text-primary); padding: 10px 14px; border-radius: 12px 12px 12px 4px; max-width: 80%; font-size: 13px;">
+                        ${data.response}
+                    `;
+
+                    // Afficher suggestions
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        responseHtml += `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);">`;
+                        responseHtml += `<div style="font-weight: 600; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">SUGGESTIONS:</div>`;
+                        data.suggestions.slice(0, 3).forEach((s, i) => {
+                            const task = todoTasks.find(t => t.id === s.taskId);
+                            if (task) {
+                                responseHtml += `<div style="font-size: 12px; margin-bottom: 4px;">${i+1}. ${task.title} <span style="color: var(--text-secondary); font-size: 11px;">(${s.reason})</span></div>`;
+                            }
+                        });
+                        responseHtml += `</div>`;
+                    }
+
+                    // Afficher insights
+                    if (data.insights && Object.keys(data.insights).length > 0) {
+                        responseHtml += `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 11px; color: var(--text-secondary);">`;
+                        if (data.insights.urgent) responseHtml += `🔥 ${data.insights.urgent} urgentes · `;
+                        if (data.insights.today) responseHtml += `📅 ${data.insights.today} aujourd'hui · `;
+                        if (data.insights.totalTime) responseHtml += `⏱️ ${data.insights.totalTime}`;
+                        responseHtml += `</div>`;
+                    }
+
+                    responseHtml += `</div>`;
+                    aiMsg.innerHTML = responseHtml;
+                    messagesContainer.appendChild(aiMsg);
+
+                    // Si modifications, recharger les tâches
+                    if (data.tasksModified > 0) {
+                        showToast(\`✅ \${data.tasksModified} tâche(s) modifiée(s)\`, 'success');
+                        await loadTodoTasks(); // Recharger
+                        renderTodoMainView();
+                    }
+                }
+
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            } catch (error) {
+                loadingMsg.remove();
+                const errorMsg = document.createElement('div');
+                errorMsg.style.cssText = 'margin-bottom: 12px;';
+                errorMsg.innerHTML = `<div style="display: inline-block; background: #FEE2E2; color: #DC2626; padding: 10px 14px; border-radius: 12px 12px 12px 4px; max-width: 80%; font-size: 13px;">❌ Erreur: ${error.message}</div>`;
+                messagesContainer.appendChild(errorMsg);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
         }
 
         // Système de notifications

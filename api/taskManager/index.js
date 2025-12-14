@@ -39,11 +39,14 @@ module.exports = async function (context, req) {
             case 'smart-add':
                 return await smartAddTask(context, req, userId);
             
+            case 'smart-command':
+                return await smartCommand(context, req, userId);
+            
             default:
                 context.res = {
                     status: 400,
                     headers: { 'Content-Type': 'application/json' },
-                    body: { error: "Unknown action. Use: create, list, update, delete, smart-add" }
+                    body: { error: "Unknown action. Use: create, list, update, delete, smart-add, smart-command" }
                 };
         }
 
@@ -317,6 +320,181 @@ async function deleteTask(context, req, userId) {
         body: {
             message: "Tâche supprimée",
             remainingTasks: filtered.length
+        }
+    };
+}
+
+/**
+ * Commande intelligente - Assistant conversationnel
+ * Exemples: "Organise ma semaine", "Qu'est-ce que je dois faire maintenant?", "Déplace ça à demain"
+ */
+async function smartCommand(context, req, userId) {
+    const { command } = req.body;
+
+    if (!command) {
+        context.res = {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            body: { error: "Command is required" }
+        };
+        return;
+    }
+
+    const groqKey = process.env.APPSETTING_GROQ_API_KEY || process.env.GROQ_API_KEY;
+    if (!groqKey) {
+        context.res = {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            body: { error: "Groq API Key not configured" }
+        };
+        return;
+    }
+
+    // Récupérer toutes les tâches pour contexte
+    const tasks = await getTasks(userId);
+    
+    // Contexte temporel
+    const now = new Date();
+    const dayOfWeek = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][now.getDay()];
+    const hour = now.getHours();
+    const timeOfDay = hour < 12 ? 'matin' : hour < 18 ? 'après-midi' : 'soir';
+    
+    // Préparer contexte des tâches
+    const taskContext = tasks.map(t => ({
+        id: t.id,
+        title: t.title,
+        priority: t.priority,
+        deadline: t.deadline,
+        status: t.status,
+        category: t.category,
+        estimatedTime: t.estimatedTime
+    }));
+
+    const systemPrompt = `Tu es un assistant de productivité intelligent. Tu aides l'utilisateur à gérer ses tâches de manière conversationnelle.
+
+CONTEXTE ACTUEL:
+- Date/Heure: ${now.toISOString()}
+- Jour: ${dayOfWeek}, ${timeOfDay}
+- Nombre de tâches: ${tasks.length}
+
+CAPACITÉS:
+1. **Organiser/Planifier**: Réorganise les tâches selon priorités, deadlines, charge de travail
+2. **Suggérer**: Recommande la prochaine tâche à faire selon contexte (heure, énergie, urgence)
+3. **Modifier**: Change deadline, priorité, statut d'une ou plusieurs tâches
+4. **Analyser**: Donne un aperçu de la charge de travail, tâches urgentes, etc.
+
+FORMAT DE RÉPONSE JSON:
+{
+  "response": "Réponse conversationnelle à l'utilisateur",
+  "action": "organize|suggest|modify|analyze|info",
+  "changes": [
+    {
+      "taskId": "123",
+      "updates": {"deadline": "2025-12-15", "priority": "high"}
+    }
+  ],
+  "suggestions": [
+    {
+      "taskId": "456",
+      "reason": "Urgent et rapide à faire",
+      "order": 1
+    }
+  ],
+  "insights": {
+    "urgent": 3,
+    "today": 5,
+    "overdue": 1,
+    "totalTime": "6h"
+  }
+}
+
+EXEMPLES:
+
+Commande: "Organise ma semaine"
+→ Analyse deadlines, distribue tâches sur la semaine, équilibre charge quotidienne
+
+Commande: "Qu'est-ce que je dois faire maintenant ?"
+→ Suggère 2-3 tâches selon contexte (heure, priorité, temps estimé)
+
+Commande: "Déplace la réunion à demain"
+→ Trouve tâche avec "réunion", change deadline à demain
+
+Commande: "Qu'est-ce qui est urgent ?"
+→ Liste tâches urgentes ou avec deadline proche
+
+RÈGLES:
+- Réponds de manière naturelle et conversationnelle
+- Priorise selon: urgence > importance > effort
+- Le matin: tâches complexes/créatives
+- L'après-midi: réunions/communications
+- Le soir: tâches simples/administratives
+- Si plusieurs tâches matchent, demande clarification`;
+
+    const userMessage = `Tâches actuelles (${tasks.length}):\n${JSON.stringify(taskContext, null, 2)}\n\nCommande utilisateur:\n${command}`;
+
+    const messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage }
+    ];
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`
+        },
+        body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: messages,
+            max_tokens: 2000,
+            temperature: 0.3,
+            response_format: { type: "json_object" }
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        context.res = {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            body: { error: `Groq Error: ${response.status}`, details: errorText }
+        };
+        return;
+    }
+
+    const aiData = await response.json();
+    const result = JSON.parse(aiData.choices[0].message.content);
+
+    // Appliquer les changements suggérés par l'IA
+    let updatedTasks = [...tasks];
+    if (result.changes && result.changes.length > 0) {
+        result.changes.forEach(change => {
+            const taskIndex = updatedTasks.findIndex(t => t.id === change.taskId);
+            if (taskIndex !== -1) {
+                updatedTasks[taskIndex] = {
+                    ...updatedTasks[taskIndex],
+                    ...change.updates,
+                    updatedAt: new Date().toISOString()
+                };
+            }
+        });
+        await saveTasks(userId, updatedTasks);
+    }
+
+    context.res = {
+        status: 200,
+        headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        body: {
+            response: result.response,
+            action: result.action,
+            changes: result.changes || [],
+            suggestions: result.suggestions || [],
+            insights: result.insights || {},
+            tasksModified: result.changes?.length || 0,
+            tokensUsed: aiData.usage?.total_tokens || 0
         }
     };
 }
