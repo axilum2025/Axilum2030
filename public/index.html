@@ -4715,7 +4715,7 @@
 
                 // Envoyer chaque tâche au serveur (création)
                 for (const task of tasks) {
-                    await fetch('/api/taskManager/create', {
+                    await fetch('/api/tasks/create', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(task)
@@ -4730,7 +4730,7 @@
 
         async function syncTasksFromServer() {
             try {
-                const response = await fetch('/api/taskManager/list');
+                const response = await fetch('/api/tasks/list');
                 const data = await response.json();
                 
                 if (data.tasks && data.tasks.length > 0) {
@@ -4914,7 +4914,7 @@
                 // DÉVELOPPEMENT LOCAL - Pointer vers le serveur local Azure Functions
                 const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                     ? 'http://localhost:7071/api/tasks/smart-command'
-                    : '/api/taskManager/smart-command';
+                    : '/api/tasks/smart-command';
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
