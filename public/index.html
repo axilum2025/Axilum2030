@@ -4448,7 +4448,7 @@
                 <!-- Header -->
                 <div style="background: var(--bg-primary); border-bottom: 1px solid var(--border-color); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 16px;">
-                        <div style="display: flex; align-items: center; gap: 10px; color: var(--text-primary); font-size: 20px; font-weight: 700;">
+                        <div style="display: flex; align-items: center; gap: 10px; color: var(--text-primary); font-size: 20px; font-weight: 700; margin-right: 32px;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M9 11l3 3L22 4"/>
                                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
@@ -4866,19 +4866,22 @@
         function switchTodoView(view) {
             todoView = view;
             
-            // Update sidebar buttons
-            document.querySelectorAll('#todoMainArea').forEach(el => el.remove());
-            
-            renderTodoMainView();
-            
-            // Visual feedback
+            // Update visual feedback on sidebar buttons
             ['list', 'kanban', 'calendar'].forEach(v => {
                 const btn = document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1));
                 if (btn) {
-                    btn.style.background = v === view ? 'rgba(59, 130, 246, 0.15)' : 'transparent';
-                    btn.style.color = v === view ? '#3B82F6' : '#F1F5F9';
+                    if (v === view) {
+                        btn.style.background = 'rgba(59, 130, 246, 0.1)';
+                        btn.style.color = '#3B82F6';
+                    } else {
+                        btn.style.background = 'transparent';
+                        btn.style.color = 'var(--text-primary)';
+                    }
                 }
             });
+            
+            // Re-render the main view with new selected view
+            renderTodoMainView();
         }
 
         function switchTodoFilter(filter) {
