@@ -4829,7 +4829,7 @@
                         responseHtml += `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);">`;
                         responseHtml += `<div style="font-weight: 600; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">SUGGESTIONS:</div>`;
                         data.suggestions.slice(0, 3).forEach((s, i) => {
-                            const task = todoTasks.find(t => t.id === s.taskId);
+                            const task = userTasks.find(t => t.id === s.taskId);
                             if (task) {
                                 responseHtml += `<div style="font-size: 12px; margin-bottom: 4px;">${i+1}. ${task.title} <span style="color: var(--text-secondary); font-size: 11px;">(${s.reason})</span></div>`;
                             }
@@ -4853,7 +4853,8 @@
                     // Si modifications, recharger les tâches
                     if (data.tasksModified > 0) {
                         showToast('✅ ' + data.tasksModified + ' tâche(s) modifiée(s)', 'success');
-                        await loadTodoTasks(); // Recharger
+                        // Les tâches sont gérées côté serveur pour l'instant
+                        // TODO: Synchroniser avec localStorage si nécessaire
                         renderTodoMainView();
                     }
                 }
