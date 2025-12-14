@@ -4919,9 +4919,18 @@
                     const task = data.task;
                     
                     // Mapper les champs de l'API vers le format local
-                    const priority = task.priority || 'medium';
+                    // Normaliser "urgent" → "high" pour compatibilité avec le code existant
+                    let priority = task.priority || 'medium';
+                    if (priority === 'urgent') priority = 'high';
+                    
                     const dueDate = task.deadline || task.dueDate || null; // L'API utilise "deadline"
-                    const category = task.category || 'Autre';
+                    
+                    // Mapper les catégories (première lettre en majuscule)
+                    let category = task.category || 'Autre';
+                    if (category) {
+                        category = category.charAt(0).toUpperCase() + category.slice(1);
+                    }
+                    
                     const description = task.description || '';
                     
                     // Créer la tâche avec les données parsées
@@ -4941,7 +4950,9 @@
                     userTasks.push(newTask);
                     localStorage.setItem('userTasks', JSON.stringify(userTasks));
                     
-                    showToast(`✅ Tâche créée ! ${dueDate ? '📅 ' + new Date(dueDate).toLocaleDateString('fr-FR') : ''}`, 'success');
+                    // Message avec priorité si urgente
+                    const priorityEmoji = priority === 'high' ? '🔴 ' : '';
+                    showToast(`✅ Tâche créée ! ${priorityEmoji}${dueDate ? '📅 ' + new Date(dueDate).toLocaleDateString('fr-FR') : ''}`, 'success');
                     renderTodoFilters();
                     renderTodoCategories();
                     renderTodoMainView();
