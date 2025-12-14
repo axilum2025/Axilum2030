@@ -4913,10 +4913,35 @@
             })
             .then(res => res.json())
             .then(data => {
+                console.log('Réponse API:', data); // Debug
+                
                 if (data.task) {
-                    // Ajouter la tâche avec les données parsées par l'IA
-                    addTask(data.task.title, data.task.priority, data.task.dueDate, data.task.category);
-                    showToast('✅ Tâche créée avec succès !', 'success');
+                    const task = data.task;
+                    
+                    // Mapper les champs de l'API vers le format local
+                    const priority = task.priority || 'medium';
+                    const dueDate = task.deadline || task.dueDate || null; // L'API utilise "deadline"
+                    const category = task.category || 'Autre';
+                    const description = task.description || '';
+                    
+                    // Créer la tâche avec les données parsées
+                    const newTask = {
+                        id: Date.now(),
+                        title: task.title,
+                        description: description,
+                        priority: priority,
+                        dueDate: dueDate,
+                        category: category,
+                        completed: false,
+                        inProgress: false,
+                        createdAt: new Date().toISOString(),
+                        subtasks: task.subtasks || []
+                    };
+                    
+                    userTasks.push(newTask);
+                    localStorage.setItem('userTasks', JSON.stringify(userTasks));
+                    
+                    showToast(`✅ Tâche créée ! ${dueDate ? '📅 ' + new Date(dueDate).toLocaleDateString('fr-FR') : ''}`, 'success');
                     renderTodoFilters();
                     renderTodoCategories();
                     renderTodoMainView();
@@ -4928,7 +4953,7 @@
                 console.error('Erreur API:', error);
                 // Fallback: création simple
                 addTask(description, 'medium', null, 'Autre');
-                showToast('✅ Tâche créée (mode simple)', 'success');
+                showToast('⚠️ Tâche créée (mode simple - IA indisponible)', 'info');
                 renderTodoFilters();
                 renderTodoCategories();
                 renderTodoMainView();
